@@ -1,0 +1,1 @@
+fetch('/api/indicadores').then(r=>r.json()).then(x=>{cadastrados.textContent=x.cadastrados;andamento.textContent=x.em_andamento;pausados.textContent=x.pausados;concluidos.textContent=x.concluidos;cliente.textContent=x.aguardando_cliente;produtos.textContent=x.aguardando_produtos;atrasados.textContent=x.atrasados}).catch(()=>alert('Não foi possível carregar os indicadores.'));
