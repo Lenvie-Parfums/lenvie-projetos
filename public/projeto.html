@@ -1,481 +1,393 @@
-const projetoId = new URLSearchParams(window.location.search).get('id');
+<!doctype html>
+<html lang="pt-BR">
 
-const form = document.getElementById('form');
-const titulo = document.getElementById('titulo');
-const resumoProjeto = document.getElementById('resumoProjeto');
+<head>
+  <meta charset="utf-8">
 
-const selectStatus = document.getElementById('status');
-const selectEtapa = document.getElementById('etapa');
-const selectArea = document.getElementById('area');
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
 
-const prazo90 = document.getElementById('prazo90');
-const temposEtapa = document.getElementById('temposEtapa');
-const temposEspera = document.getElementById('temposEspera');
-const historico = document.getElementById('historico');
+  <title>Projeto | LENVIE</title>
 
+  <link
+    rel="stylesheet"
+    href="/css/style.css"
+  >
+</head>
 
-function preencherSelect(elemento, itens = []) {
-  elemento.innerHTML = '';
+<body>
 
-  itens.forEach(item => {
-    const option = document.createElement('option');
-    option.value = item;
-    option.textContent = item;
+  <header>
+    <strong>LENVIE · Projetos</strong>
 
-    elemento.appendChild(option);
-  });
-}
-
-
-function formatarDataInput(valor) {
-  if (!valor) return '';
-
-  return String(valor).slice(0, 10);
-}
+    <nav>
+      <a href="/">Dashboard</a>
+      <a href="/projetos.html">Projetos</a>
+      <a href="/novo-projeto.html">Novo Projeto</a>
+    </nav>
+  </header>
 
 
-function renderizarTempos(dados = [], elemento, chave) {
+  <main class="wrap">
 
-  if (!dados.length) {
-    elemento.innerHTML =
-      '<span class="muted">Sem dados ainda.</span>';
+    <!-- =====================================================
+         CABEÇALHO DO PROJETO
+    ====================================================== -->
 
-    return;
-  }
+    <div class="page-head">
 
-  elemento.innerHTML = dados.map(item => `
-    <div class="bar-row">
-      <span>${item[chave] || '—'}</span>
-      <b>${item.dias ?? 0} d</b>
+      <div>
+        <h1 id="titulo">
+          Projeto
+        </h1>
+
+        <div
+          id="resumoProjeto"
+          class="summary-line"
+        ></div>
+      </div>
+
+
+      <a
+        class="btn secondary"
+        href="/api/relatorios/projetos.xlsx"
+      >
+        Exportar XLSX
+      </a>
+
     </div>
-  `).join('');
-}
 
 
-function garantirOpcao(select, valor) {
+    <!-- =====================================================
+         FORMULÁRIO
+    ====================================================== -->
 
-  if (!valor) return;
+    <form
+      id="form"
+      class="panel grid"
+    >
 
-  const existe = Array.from(select.options)
-    .some(option => option.value === valor);
+      <!-- CLIENTE -->
 
-  if (!existe) {
+      <div>
+        <label>
+          Cliente *
+        </label>
 
-    const option = document.createElement('option');
+        <input
+          name="cliente"
+          required
+        >
+      </div>
 
-    option.value = valor;
-    option.textContent = valor;
 
-    select.appendChild(option);
-  }
+      <!-- SEGMENTO -->
 
-  select.value = valor;
-}
+      <div>
+        <label>
+          Segmento
+        </label>
 
+        <input
+          name="segmento"
+        >
+      </div>
 
-async function carregarProjeto() {
 
-  try {
+      <!-- PROJETO -->
 
-    if (!projetoId) {
-      throw new Error('ID do projeto não informado.');
-    }
+      <div class="full">
 
+        <label>
+          Nome do Projeto *
+        </label>
 
-    const [configResponse, projetoResponse] =
-      await Promise.all([
-        fetch('/api/config'),
-        fetch(`/api/projetos/${projetoId}`)
-      ]);
+        <input
+          name="nome"
+          required
+        >
 
+      </div>
 
-    if (!configResponse.ok) {
-      throw new Error('Erro ao carregar configurações.');
-    }
 
+      <!-- ORIGEM -->
 
-    if (!projetoResponse.ok) {
-      throw new Error('Erro ao carregar projeto.');
-    }
+      <div>
 
+        <label>
+          Origem / Indicação
+        </label>
 
-    const config = await configResponse.json();
-    const dados = await projetoResponse.json();
+        <input
+          name="origem_cliente"
+        >
 
-    const projeto = dados.projeto;
+      </div>
 
 
-    // =========================================================
-    // SELECTS
-    // =========================================================
+      <!-- COMERCIAL -->
 
-    preencherSelect(
-      selectStatus,
-      config.status || []
-    );
+      <div>
 
-    preencherSelect(
-      selectEtapa,
-      config.etapas || []
-    );
+        <label>
+          Comercial responsável
+        </label>
 
-    preencherSelect(
-      selectArea,
-      config.areas || []
-    );
+        <input
+          name="comercial_responsavel"
+        >
 
+      </div>
 
-    // =========================================================
-    // CABEÇALHO
-    // =========================================================
 
-    titulo.textContent =
-      `${projeto.codigo} · ${projeto.nome}`;
+      <!-- RESPONSÁVEL -->
 
+      <div>
 
-    const diasEmAberto =
-      projeto.dias_em_aberto ?? 0;
+        <label>
+          Responsável pelo acompanhamento
+        </label>
 
+        <input
+          name="responsavel"
+        >
 
-    let textoPrazo90 = '';
+      </div>
 
 
-    if (
-      projeto.dias_para_90 !== null &&
-      projeto.dias_para_90 !== undefined
-    ) {
+      <!-- PREVISÃO -->
 
-      if (projeto.dias_para_90 >= 0) {
+      <div>
 
-        textoPrazo90 = `
-          <span>
-            • ${projeto.dias_para_90}
-            dias para o prazo de 90 dias
-          </span>
-        `;
+        <label>
+          Previsão
+        </label>
 
-      } else {
+        <input
+          type="date"
+          name="previsao_conclusao"
+        >
 
-        textoPrazo90 = `
-          <span>
-            • ${Math.abs(projeto.dias_para_90)}
-            dias além do prazo de 90 dias
-          </span>
-        `;
-      }
-    }
+      </div>
 
 
-    resumoProjeto.innerHTML = `
-      <span class="flag">
-        ${projeto.situacao_automatica || 'SEM CLASSIFICAÇÃO'}
-      </span>
+      <!-- STATUS -->
 
-      <span>
-        ${diasEmAberto} dias desde o início
-      </span>
+      <div>
 
-      ${textoPrazo90}
-    `;
+        <label>
+          Status
+        </label>
 
+        <select
+          name="status"
+          id="status"
+        ></select>
 
-    // =========================================================
-    // CAMPOS DO FORMULÁRIO
-    // =========================================================
+      </div>
 
-    const camposData = [
-      'data_inicio',
-      'previsao_conclusao',
-      'prazo_proxima_acao',
-      'data_aprovacao',
-      'data_conclusao'
-    ];
 
+      <!-- ETAPA -->
 
-    for (
-      const [campo, valor]
-      of Object.entries(projeto)
-    ) {
+      <div>
 
-      // Esses campos serão tratados depois.
-      if (
-        campo === 'status' ||
-        campo === 'etapa_atual' ||
-        campo === 'area_pendente'
-      ) {
-        continue;
-      }
+        <label>
+          Etapa atual
+        </label>
 
+        <select
+          name="etapa_atual"
+          id="etapa"
+        ></select>
 
-      const elemento =
-        form.elements[campo];
+      </div>
 
 
-      if (!elemento) {
-        continue;
-      }
+      <!-- ÁREA PENDENTE -->
 
+      <div>
 
-      if (camposData.includes(campo)) {
+        <label>
+          Aguardando / Área pendente
+        </label>
 
-        elemento.value =
-          formatarDataInput(valor);
+        <select
+          name="area_pendente"
+          id="area"
+        ></select>
 
-      } else {
+      </div>
 
-        elemento.value =
-          valor ?? '';
-      }
-    }
 
+      <!-- PRAZO PRÓXIMA AÇÃO -->
 
-    // =========================================================
-    // VALORES DOS SELECTS
-    // =========================================================
+      <div>
 
-    garantirOpcao(
-      selectStatus,
-      projeto.status || 'Em andamento'
-    );
+        <label>
+          Prazo da próxima ação
+        </label>
 
+        <input
+          type="date"
+          name="prazo_proxima_acao"
+        >
 
-    garantirOpcao(
-      selectEtapa,
-      projeto.etapa_atual ||
-      config.etapas?.[0] ||
-      'Entrada / Oportunidade'
-    );
+      </div>
 
 
-    garantirOpcao(
-      selectArea,
-      projeto.area_pendente ||
-      'Sem pendência'
-    );
+      <!-- DATA APROVAÇÃO -->
 
+      <div>
 
-    // =========================================================
-    // PRAZO 90 DIAS
-    // =========================================================
+        <label>
+          Data de aprovação
+        </label>
 
-    prazo90.value =
-      formatarDataInput(
-        projeto.prazo_90_dias
-      );
+        <input
+          type="date"
+          name="data_aprovacao"
+        >
 
+      </div>
 
-    // =========================================================
-    // TEMPO POR ETAPA
-    // =========================================================
 
-    renderizarTempos(
-      dados.tempos_etapa || [],
-      temposEtapa,
-      'etapa'
-    );
+      <!-- PRAZO 90 DIAS -->
 
+      <div>
 
-    // =========================================================
-    // TEMPO AGUARDANDO
-    // =========================================================
+        <label>
+          Prazo 90 dias
+        </label>
 
-    renderizarTempos(
-      dados.tempos_espera || [],
-      temposEspera,
-      'area_pendente'
-    );
+        <input
+          id="prazo90"
+          disabled
+        >
 
+      </div>
 
-    // =========================================================
-    // HISTÓRICO
-    // =========================================================
 
-    const registros =
-      dados.historico || [];
+      <!-- PRÓXIMA AÇÃO -->
 
+      <div class="full">
 
-    if (!registros.length) {
+        <label>
+          Próxima ação
+        </label>
 
-      historico.innerHTML =
-        '<span class="muted">Sem histórico.</span>';
+        <textarea
+          name="proxima_acao"
+        ></textarea>
 
-    } else {
+      </div>
 
-      historico.innerHTML =
-        registros.map(item => {
 
-          let dataRegistro = '—';
+      <!-- OBSERVAÇÕES -->
 
-          if (item.data_registro) {
+      <div class="full">
 
-            dataRegistro =
-              new Date(
-                item.data_registro
-              ).toLocaleString('pt-BR');
-          }
+        <label>
+          Observações gerais
+        </label>
 
+        <textarea
+          name="observacoes"
+        ></textarea>
 
-          const dias =
-            Number(
-              item.dias_na_situacao || 0
-            );
+      </div>
 
 
-          return `
-            <div class="history">
+      <!-- OBSERVAÇÃO MOVIMENTAÇÃO -->
 
-              <b>
-                ${dataRegistro}
-              </b>
+      <div class="full">
 
-              <span class="muted">
-                • ${dias.toFixed(1)} dias
-              </span>
+        <label>
+          Observação desta movimentação
+        </label>
 
-              <br>
+        <textarea
+          name="movimentacao_observacao"
+          placeholder="Ex.: Cliente pediu nova opção de fragrância"
+        ></textarea>
 
-              <span class="pill">
-                ${item.situacao || ''}
-              </span>
+      </div>
 
-              ${item.etapa || ''}
 
-              <br>
+      <!-- SALVAR -->
 
-              <span class="muted">
-                Aguardando:
-                ${item.area_pendente || '—'}
-              </span>
+      <div class="full">
 
-              ${
-                item.pendencia_proximo_passo
-                  ? `<br>${item.pendencia_proximo_passo}`
-                  : ''
-              }
+        <button
+          type="submit"
+          class="btn"
+        >
+          Salvar atualização
+        </button>
 
-              ${
-                item.observacoes
-                  ? `<br><small>${item.observacoes}</small>`
-                  : ''
-              }
+      </div>
 
-            </div>
-          `;
+    </form>
 
-        }).join('');
-    }
 
+    <!-- =====================================================
+         TEMPOS AUTOMÁTICOS
+    ====================================================== -->
 
-  } catch (erro) {
+    <div class="split">
 
-    console.error(erro);
+      <section class="panel">
 
-    alert(
-      'Não foi possível carregar o projeto.'
-    );
-  }
-}
+        <h2>
+          Tempo por etapa
+        </h2>
 
+        <div
+          id="temposEtapa"
+        ></div>
 
-// =============================================================
-// SALVAR
-// =============================================================
+      </section>
 
-form.addEventListener(
-  'submit',
-  async event => {
 
-    event.preventDefault();
+      <section class="panel">
 
+        <h2>
+          Tempo aguardando
+        </h2>
 
-    try {
+        <div
+          id="temposEspera"
+        ></div>
 
-      const dadosFormulario =
-        Object.fromEntries(
-          new FormData(form).entries()
-        );
+      </section>
 
+    </div>
 
-      // Proteções contra campos críticos vazios.
 
-      if (!dadosFormulario.status) {
+    <!-- =====================================================
+         HISTÓRICO
+    ====================================================== -->
 
-        dadosFormulario.status =
-          selectStatus.value ||
-          'Em andamento';
-      }
+    <h2>
+      Histórico de Etapas
+    </h2>
 
+    <div
+      id="historico"
+      class="panel"
+    ></div>
 
-      if (!dadosFormulario.etapa_atual) {
+  </main>
 
-        dadosFormulario.etapa_atual =
-          selectEtapa.value ||
-          'Entrada / Oportunidade';
-      }
 
+  <!-- IMPORTANTE:
+       projeto.html contém HTML.
+       projeto.js contém JavaScript.
+  -->
 
-      if (!dadosFormulario.area_pendente) {
+  <script src="/js/projeto.js"></script>
 
-        dadosFormulario.area_pendente =
-          selectArea.value ||
-          'Sem pendência';
-      }
+</body>
 
-
-      const response =
-        await fetch(
-          `/api/projetos/${projetoId}`,
-          {
-            method: 'PUT',
-
-            headers: {
-              'Content-Type':
-                'application/json'
-            },
-
-            body:
-              JSON.stringify(
-                dadosFormulario
-              )
-          }
-        );
-
-
-      const resultado =
-        await response.json();
-
-
-      if (!response.ok) {
-
-        console.error(resultado);
-
-        alert(
-          resultado.detalhe ||
-          resultado.erro ||
-          'Erro ao atualizar projeto.'
-        );
-
-        return;
-      }
-
-
-      window.location.reload();
-
-
-    } catch (erro) {
-
-      console.error(erro);
-
-      alert(
-        'Erro ao salvar atualização.'
-      );
-    }
-  }
-);
-
-
-// =============================================================
-// INICIAR
-// =============================================================
-
-carregarProjeto();
+</html>
