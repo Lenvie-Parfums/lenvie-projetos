@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS projetos (
  segmento VARCHAR(80),
  nome VARCHAR(200) NOT NULL,
  responsavel VARCHAR(120),
+ origem_cliente VARCHAR(120),
+ comercial_responsavel VARCHAR(120),
  data_inicio DATE NOT NULL DEFAULT CURRENT_DATE,
  previsao_conclusao DATE,
  data_conclusao DATE,
@@ -32,3 +34,8 @@ CREATE TABLE IF NOT EXISTS historico_etapas (
 );
 CREATE INDEX IF NOT EXISTS idx_historico_projeto ON historico_etapas(projeto_id, data_registro DESC);
 CREATE INDEX IF NOT EXISTS idx_projetos_status ON projetos(status);
+
+CREATE INDEX IF NOT EXISTS idx_projetos_prazo_acao ON projetos(prazo_proxima_acao);
+CREATE INDEX IF NOT EXISTS idx_projetos_atualizado ON projetos(atualizado_em DESC);
+CREATE INDEX IF NOT EXISTS idx_projetos_area ON projetos(area_pendente);
+CREATE INDEX IF NOT EXISTS idx_projetos_aprovacao ON projetos(data_aprovacao);
