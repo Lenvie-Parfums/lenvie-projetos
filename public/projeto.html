@@ -1,1 +1,481 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Projeto</title><link rel="stylesheet" href="/css/style.css"></head><body><header><strong>LENVIE · Projetos</strong><nav><a href="/">Dashboard</a><a href="/projetos.html">Projetos</a></nav></header><main class="wrap"><div class="page-head"><div><h1 id="titulo">Projeto</h1><div id="resumoProjeto" class="summary-line"></div></div><a class="btn secondary" href="/api/relatorios/projetos.xlsx">Exportar XLSX</a></div><form id="form" class="panel grid"><div><label>Cliente *</label><input name="cliente" required></div><div><label>Segmento</label><input name="segmento"></div><div class="full"><label>Nome do Projeto *</label><input name="nome" required></div><div><label>Origem / Indicação</label><input name="origem_cliente"></div><div><label>Comercial responsável</label><input name="comercial_responsavel"></div><div><label>Responsável pelo acompanhamento</label><input name="responsavel"></div><div><label>Previsão</label><input type="date" name="previsao_conclusao"></div><div><label>Status</label><select name="status" id="status"></select></div><div><label>Etapa atual</label><select name="etapa_atual" id="etapa"></select></div><div><label>Aguardando / Área pendente</label><select name="area_pendente" id="area"></select></div><div><label>Prazo da próxima ação</label><input type="date" name="prazo_proxima_acao"></div><div><label>Data de aprovação</label><input type="date" name="data_aprovacao"></div><div><label>Prazo 90 dias</label><input id="prazo90" disabled></div><div class="full"><label>Próxima ação</label><textarea name="proxima_acao"></textarea></div><div class="full"><label>Observações gerais</label><textarea name="observacoes"></textarea></div><div class="full"><label>Observação desta movimentação</label><textarea name="movimentacao_observacao" placeholder="Ex.: Cliente pediu nova opção de fragrância"></textarea></div><div class="full"><button class="btn">Salvar atualização</button></div></form><div class="split"><section class="panel"><h2>Tempo por etapa</h2><div id="temposEtapa"></div></section><section class="panel"><h2>Tempo aguardando</h2><div id="temposEspera"></div></section></div><h2>Histórico de Etapas</h2><div id="historico" class="panel"></div></main><script src="/js/projeto.js"></script></body></html>
+const projetoId = new URLSearchParams(window.location.search).get('id');
+
+const form = document.getElementById('form');
+const titulo = document.getElementById('titulo');
+const resumoProjeto = document.getElementById('resumoProjeto');
+
+const selectStatus = document.getElementById('status');
+const selectEtapa = document.getElementById('etapa');
+const selectArea = document.getElementById('area');
+
+const prazo90 = document.getElementById('prazo90');
+const temposEtapa = document.getElementById('temposEtapa');
+const temposEspera = document.getElementById('temposEspera');
+const historico = document.getElementById('historico');
+
+
+function preencherSelect(elemento, itens = []) {
+  elemento.innerHTML = '';
+
+  itens.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item;
+    option.textContent = item;
+
+    elemento.appendChild(option);
+  });
+}
+
+
+function formatarDataInput(valor) {
+  if (!valor) return '';
+
+  return String(valor).slice(0, 10);
+}
+
+
+function renderizarTempos(dados = [], elemento, chave) {
+
+  if (!dados.length) {
+    elemento.innerHTML =
+      '<span class="muted">Sem dados ainda.</span>';
+
+    return;
+  }
+
+  elemento.innerHTML = dados.map(item => `
+    <div class="bar-row">
+      <span>${item[chave] || '—'}</span>
+      <b>${item.dias ?? 0} d</b>
+    </div>
+  `).join('');
+}
+
+
+function garantirOpcao(select, valor) {
+
+  if (!valor) return;
+
+  const existe = Array.from(select.options)
+    .some(option => option.value === valor);
+
+  if (!existe) {
+
+    const option = document.createElement('option');
+
+    option.value = valor;
+    option.textContent = valor;
+
+    select.appendChild(option);
+  }
+
+  select.value = valor;
+}
+
+
+async function carregarProjeto() {
+
+  try {
+
+    if (!projetoId) {
+      throw new Error('ID do projeto não informado.');
+    }
+
+
+    const [configResponse, projetoResponse] =
+      await Promise.all([
+        fetch('/api/config'),
+        fetch(`/api/projetos/${projetoId}`)
+      ]);
+
+
+    if (!configResponse.ok) {
+      throw new Error('Erro ao carregar configurações.');
+    }
+
+
+    if (!projetoResponse.ok) {
+      throw new Error('Erro ao carregar projeto.');
+    }
+
+
+    const config = await configResponse.json();
+    const dados = await projetoResponse.json();
+
+    const projeto = dados.projeto;
+
+
+    // =========================================================
+    // SELECTS
+    // =========================================================
+
+    preencherSelect(
+      selectStatus,
+      config.status || []
+    );
+
+    preencherSelect(
+      selectEtapa,
+      config.etapas || []
+    );
+
+    preencherSelect(
+      selectArea,
+      config.areas || []
+    );
+
+
+    // =========================================================
+    // CABEÇALHO
+    // =========================================================
+
+    titulo.textContent =
+      `${projeto.codigo} · ${projeto.nome}`;
+
+
+    const diasEmAberto =
+      projeto.dias_em_aberto ?? 0;
+
+
+    let textoPrazo90 = '';
+
+
+    if (
+      projeto.dias_para_90 !== null &&
+      projeto.dias_para_90 !== undefined
+    ) {
+
+      if (projeto.dias_para_90 >= 0) {
+
+        textoPrazo90 = `
+          <span>
+            • ${projeto.dias_para_90}
+            dias para o prazo de 90 dias
+          </span>
+        `;
+
+      } else {
+
+        textoPrazo90 = `
+          <span>
+            • ${Math.abs(projeto.dias_para_90)}
+            dias além do prazo de 90 dias
+          </span>
+        `;
+      }
+    }
+
+
+    resumoProjeto.innerHTML = `
+      <span class="flag">
+        ${projeto.situacao_automatica || 'SEM CLASSIFICAÇÃO'}
+      </span>
+
+      <span>
+        ${diasEmAberto} dias desde o início
+      </span>
+
+      ${textoPrazo90}
+    `;
+
+
+    // =========================================================
+    // CAMPOS DO FORMULÁRIO
+    // =========================================================
+
+    const camposData = [
+      'data_inicio',
+      'previsao_conclusao',
+      'prazo_proxima_acao',
+      'data_aprovacao',
+      'data_conclusao'
+    ];
+
+
+    for (
+      const [campo, valor]
+      of Object.entries(projeto)
+    ) {
+
+      // Esses campos serão tratados depois.
+      if (
+        campo === 'status' ||
+        campo === 'etapa_atual' ||
+        campo === 'area_pendente'
+      ) {
+        continue;
+      }
+
+
+      const elemento =
+        form.elements[campo];
+
+
+      if (!elemento) {
+        continue;
+      }
+
+
+      if (camposData.includes(campo)) {
+
+        elemento.value =
+          formatarDataInput(valor);
+
+      } else {
+
+        elemento.value =
+          valor ?? '';
+      }
+    }
+
+
+    // =========================================================
+    // VALORES DOS SELECTS
+    // =========================================================
+
+    garantirOpcao(
+      selectStatus,
+      projeto.status || 'Em andamento'
+    );
+
+
+    garantirOpcao(
+      selectEtapa,
+      projeto.etapa_atual ||
+      config.etapas?.[0] ||
+      'Entrada / Oportunidade'
+    );
+
+
+    garantirOpcao(
+      selectArea,
+      projeto.area_pendente ||
+      'Sem pendência'
+    );
+
+
+    // =========================================================
+    // PRAZO 90 DIAS
+    // =========================================================
+
+    prazo90.value =
+      formatarDataInput(
+        projeto.prazo_90_dias
+      );
+
+
+    // =========================================================
+    // TEMPO POR ETAPA
+    // =========================================================
+
+    renderizarTempos(
+      dados.tempos_etapa || [],
+      temposEtapa,
+      'etapa'
+    );
+
+
+    // =========================================================
+    // TEMPO AGUARDANDO
+    // =========================================================
+
+    renderizarTempos(
+      dados.tempos_espera || [],
+      temposEspera,
+      'area_pendente'
+    );
+
+
+    // =========================================================
+    // HISTÓRICO
+    // =========================================================
+
+    const registros =
+      dados.historico || [];
+
+
+    if (!registros.length) {
+
+      historico.innerHTML =
+        '<span class="muted">Sem histórico.</span>';
+
+    } else {
+
+      historico.innerHTML =
+        registros.map(item => {
+
+          let dataRegistro = '—';
+
+          if (item.data_registro) {
+
+            dataRegistro =
+              new Date(
+                item.data_registro
+              ).toLocaleString('pt-BR');
+          }
+
+
+          const dias =
+            Number(
+              item.dias_na_situacao || 0
+            );
+
+
+          return `
+            <div class="history">
+
+              <b>
+                ${dataRegistro}
+              </b>
+
+              <span class="muted">
+                • ${dias.toFixed(1)} dias
+              </span>
+
+              <br>
+
+              <span class="pill">
+                ${item.situacao || ''}
+              </span>
+
+              ${item.etapa || ''}
+
+              <br>
+
+              <span class="muted">
+                Aguardando:
+                ${item.area_pendente || '—'}
+              </span>
+
+              ${
+                item.pendencia_proximo_passo
+                  ? `<br>${item.pendencia_proximo_passo}`
+                  : ''
+              }
+
+              ${
+                item.observacoes
+                  ? `<br><small>${item.observacoes}</small>`
+                  : ''
+              }
+
+            </div>
+          `;
+
+        }).join('');
+    }
+
+
+  } catch (erro) {
+
+    console.error(erro);
+
+    alert(
+      'Não foi possível carregar o projeto.'
+    );
+  }
+}
+
+
+// =============================================================
+// SALVAR
+// =============================================================
+
+form.addEventListener(
+  'submit',
+  async event => {
+
+    event.preventDefault();
+
+
+    try {
+
+      const dadosFormulario =
+        Object.fromEntries(
+          new FormData(form).entries()
+        );
+
+
+      // Proteções contra campos críticos vazios.
+
+      if (!dadosFormulario.status) {
+
+        dadosFormulario.status =
+          selectStatus.value ||
+          'Em andamento';
+      }
+
+
+      if (!dadosFormulario.etapa_atual) {
+
+        dadosFormulario.etapa_atual =
+          selectEtapa.value ||
+          'Entrada / Oportunidade';
+      }
+
+
+      if (!dadosFormulario.area_pendente) {
+
+        dadosFormulario.area_pendente =
+          selectArea.value ||
+          'Sem pendência';
+      }
+
+
+      const response =
+        await fetch(
+          `/api/projetos/${projetoId}`,
+          {
+            method: 'PUT',
+
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
+
+            body:
+              JSON.stringify(
+                dadosFormulario
+              )
+          }
+        );
+
+
+      const resultado =
+        await response.json();
+
+
+      if (!response.ok) {
+
+        console.error(resultado);
+
+        alert(
+          resultado.detalhe ||
+          resultado.erro ||
+          'Erro ao atualizar projeto.'
+        );
+
+        return;
+      }
+
+
+      window.location.reload();
+
+
+    } catch (erro) {
+
+      console.error(erro);
+
+      alert(
+        'Erro ao salvar atualização.'
+      );
+    }
+  }
+);
+
+
+// =============================================================
+// INICIAR
+// =============================================================
+
+carregarProjeto();
