@@ -1,266 +1,621 @@
-const id = new URLSearchParams(location.search).get('id');
+document.addEventListener('DOMContentLoaded', async () => {
 
-const fill = (el, itens) => {
-  el.innerHTML = itens
-    .map(item => `<option value="${item}">${item}</option>`)
-    .join('');
-};
+  const projetoId =
+    new URLSearchParams(window.location.search).get('id');
 
-const dataInput = valor => {
-  if (!valor) return '';
-  return String(valor).slice(0, 10);
-};
+  const form =
+    document.getElementById('form');
 
-const bars = (dados, elemento, chave) => {
-  elemento.innerHTML =
-    dados.map(item => `
-      <div class="bar-row">
-        <span>${item[chave] || '—'}</span>
-        <b>${item.dias} d</b>
-      </div>
-    `).join('') ||
-    '<span class="muted">Sem dados ainda.</span>';
-};
+  const titulo =
+    document.getElementById('titulo');
 
-async function carregarProjeto() {
-  try {
-    const [configResponse, projetoResponse] = await Promise.all([
-      fetch('/api/config'),
-      fetch('/api/projetos/' + id)
-    ]);
+  const resumo =
+    document.getElementById('resumoProjeto');
 
-    if (!configResponse.ok || !projetoResponse.ok) {
-      throw new Error('Erro ao carregar projeto.');
-    }
+  const statusSelect =
+    document.getElementById('status');
 
-    const config = await configResponse.json();
-    const dados = await projetoResponse.json();
+  const etapaSelect =
+    document.getElementById('etapa');
 
-    const p = dados.projeto;
+  const areaSelect =
+    document.getElementById('area');
 
-    // ---------------------------------------------------------
-    // MONTA OS SELECTS
-    // ---------------------------------------------------------
+  const prazo90 =
+    document.getElementById('prazo90');
 
-    fill(status, config.status || []);
-    fill(etapa, config.etapas || []);
-    fill(area, config.areas || []);
+  const temposEtapa =
+    document.getElementById('temposEtapa');
 
-    // ---------------------------------------------------------
-    // CABEÇALHO
-    // ---------------------------------------------------------
+  const temposEspera =
+    document.getElementById('temposEspera');
 
-    titulo.textContent = `${p.codigo} · ${p.nome}`;
+  const historico =
+    document.getElementById('historico');
 
-    const diasAberto = p.dias_em_aberto ?? 0;
 
-    let prazo90Texto = '';
+  // ============================================================
+  // FUNÇÕES AUXILIARES
+  // ============================================================
 
-    if (p.dias_para_90 !== null && p.dias_para_90 !== undefined) {
-      prazo90Texto =
-        p.dias_para_90 >= 0
-          ? ` <span>• ${p.dias_para_90} dias para o prazo de 90 dias</span>`
-          : ` <span>• ${Math.abs(p.dias_para_90)} dias além do prazo de 90 dias</span>`;
-    }
+  function dataInput(valor) {
 
-    resumoProjeto.innerHTML = `
-      <span class="flag">${p.situacao_automatica || 'SEM CLASSIFICAÇÃO'}</span>
-      <span>${diasAberto} dias desde o início</span>
-      ${prazo90Texto}
-    `;
+    if (!valor) return '';
 
-    // ---------------------------------------------------------
-    // CAMPOS DE TEXTO / DATAS
-    // ---------------------------------------------------------
-
-    const camposData = [
-      'data_inicio',
-      'previsao_conclusao',
-      'prazo_proxima_acao',
-      'data_aprovacao',
-      'data_conclusao'
-    ];
-
-    for (const [campo, valor] of Object.entries(p)) {
-      const elemento = form.elements[campo];
-
-      if (!elemento) continue;
-
-      // Selects serão definidos explicitamente abaixo.
-      if (
-        campo === 'status' ||
-        campo === 'etapa_atual' ||
-        campo === 'area_pendente'
-      ) {
-        continue;
-      }
-
-      if (camposData.includes(campo)) {
-        elemento.value = dataInput(valor);
-      } else {
-        elemento.value = valor ?? '';
-      }
-    }
-
-    // ---------------------------------------------------------
-    // SELECTS
-    // ---------------------------------------------------------
-
-    status.value = p.status || 'Em andamento';
-    etapa.value = p.etapa_atual || config.etapas?.[0] || '';
-    area.value = p.area_pendente || 'Sem pendência';
-
-    // Segurança caso algum valor antigo não exista mais na configuração.
-    if (!status.value && p.status) {
-      status.add(new Option(p.status, p.status));
-      status.value = p.status;
-    }
-
-    if (!etapa.value && p.etapa_atual) {
-      etapa.add(new Option(p.etapa_atual, p.etapa_atual));
-      etapa.value = p.etapa_atual;
-    }
-
-    if (!area.value && p.area_pendente) {
-      area.add(new Option(p.area_pendente, p.area_pendente));
-      area.value = p.area_pendente;
-    }
-
-    // ---------------------------------------------------------
-    // PRAZO 90 DIAS
-    // ---------------------------------------------------------
-
-    prazo90.value = dataInput(p.prazo_90_dias);
-
-    // ---------------------------------------------------------
-    // TEMPOS
-    // ---------------------------------------------------------
-
-    bars(
-      dados.tempos_etapa || [],
-      temposEtapa,
-      'etapa'
-    );
-
-    bars(
-      dados.tempos_espera || [],
-      temposEspera,
-      'area_pendente'
-    );
-
-    // ---------------------------------------------------------
-    // HISTÓRICO
-    // ---------------------------------------------------------
-
-    historico.innerHTML =
-      (dados.historico || []).map(h => {
-
-        const dataRegistro = h.data_registro
-          ? new Date(h.data_registro).toLocaleString('pt-BR')
-          : '—';
-
-        const dias = Number(h.dias_na_situacao || 0);
-
-        return `
-          <div class="history">
-
-            <b>${dataRegistro}</b>
-
-            <span class="muted">
-              • ${dias.toFixed(1)} dias
-            </span>
-
-            <br>
-
-            <span class="pill">
-              ${h.situacao || ''}
-            </span>
-
-            ${h.etapa || ''}
-
-            <br>
-
-            <span class="muted">
-              Aguardando: ${h.area_pendente || '—'}
-            </span>
-
-            ${
-              h.pendencia_proximo_passo
-                ? `<br>${h.pendencia_proximo_passo}`
-                : ''
-            }
-
-            ${
-              h.observacoes
-                ? `<br><small>${h.observacoes}</small>`
-                : ''
-            }
-
-          </div>
-        `;
-      }).join('') || 'Sem histórico.';
-
-  } catch (erro) {
-    console.error(erro);
-    alert('Não foi possível carregar o projeto.');
+    return String(valor).substring(0, 10);
   }
-}
 
-// ---------------------------------------------------------
-// SALVAR ATUALIZAÇÃO
-// ---------------------------------------------------------
 
-form.onsubmit = async event => {
-  event.preventDefault();
+  function preencherSelect(select, valores) {
 
-  try {
-    const data = Object.fromEntries(
-      new FormData(form)
-    );
+    select.innerHTML = '';
 
-    // Segurança adicional.
-    // Um projeto nunca deve ser enviado sem status.
-    if (!data.status) {
-      data.status = 'Em andamento';
+    (valores || []).forEach(valor => {
+
+      const option =
+        document.createElement('option');
+
+      option.value = valor;
+      option.textContent = valor;
+
+      select.appendChild(option);
+    });
+  }
+
+
+  function definirSelect(
+    select,
+    valor,
+    fallback
+  ) {
+
+    const valorFinal =
+      valor || fallback || '';
+
+    if (!valorFinal) return;
+
+
+    let existe =
+      Array.from(select.options)
+        .some(
+          option =>
+            option.value === valorFinal
+        );
+
+
+    if (!existe) {
+
+      const option =
+        document.createElement('option');
+
+      option.value = valorFinal;
+      option.textContent = valorFinal;
+
+      select.appendChild(option);
     }
 
-    if (!data.etapa_atual) {
-      data.etapa_atual = 'Entrada / Oportunidade';
-    }
 
-    if (!data.area_pendente) {
-      data.area_pendente = 'Sem pendência';
-    }
+    select.value = valorFinal;
+  }
 
-    const response = await fetch(
-      '/api/projetos/' + id,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      }
-    );
 
-    const resultado = await response.json();
+  function preencherCampo(
+    nome,
+    valor,
+    data = false
+  ) {
 
-    if (!response.ok) {
-      alert(
-        resultado.detalhe ||
-        resultado.erro ||
-        'Erro ao atualizar projeto.'
-      );
+    const campo =
+      form.elements.namedItem(nome);
+
+    if (!campo) return;
+
+
+    campo.value =
+      data
+        ? dataInput(valor)
+        : (valor ?? '');
+  }
+
+
+  // ============================================================
+  // CARREGAR PROJETO
+  // ============================================================
+
+  async function carregar() {
+
+    if (!projetoId) {
+
+      alert('Projeto não informado.');
 
       return;
     }
 
-    location.reload();
 
-  } catch (erro) {
-    console.error(erro);
-    alert('Erro ao salvar atualização.');
+    try {
+
+      // CONFIGURAÇÕES
+
+      const respostaConfig =
+        await fetch('/api/config');
+
+
+      if (!respostaConfig.ok) {
+
+        throw new Error(
+          'Falha ao carregar /api/config'
+        );
+      }
+
+
+      const config =
+        await respostaConfig.json();
+
+
+      // PROJETO
+
+      const respostaProjeto =
+        await fetch(
+          `/api/projetos/${projetoId}`
+        );
+
+
+      if (!respostaProjeto.ok) {
+
+        throw new Error(
+          `Falha ao carregar projeto: HTTP ${respostaProjeto.status}`
+        );
+      }
+
+
+      const dados =
+        await respostaProjeto.json();
+
+
+      const projeto =
+        dados.projeto;
+
+
+      if (!projeto) {
+
+        throw new Error(
+          'API não retornou o projeto.'
+        );
+      }
+
+
+      // ========================================================
+      // SELECTS
+      // ========================================================
+
+      preencherSelect(
+        statusSelect,
+        config.status
+      );
+
+      preencherSelect(
+        etapaSelect,
+        config.etapas
+      );
+
+      preencherSelect(
+        areaSelect,
+        config.areas
+      );
+
+
+      definirSelect(
+        statusSelect,
+        projeto.status,
+        'Em andamento'
+      );
+
+
+      definirSelect(
+        etapaSelect,
+        projeto.etapa_atual,
+        'Entrada / Oportunidade'
+      );
+
+
+      definirSelect(
+        areaSelect,
+        projeto.area_pendente,
+        'Sem pendência'
+      );
+
+
+      // ========================================================
+      // CABEÇALHO
+      // ========================================================
+
+      titulo.textContent =
+        `${projeto.codigo} · ${projeto.nome}`;
+
+
+      let textoResumo = '';
+
+
+      textoResumo += `
+        <span class="flag">
+          ${projeto.situacao_automatica || 'SEM CLASSIFICAÇÃO'}
+        </span>
+      `;
+
+
+      textoResumo += `
+        <span>
+          ${projeto.dias_em_aberto ?? 0}
+          dias desde o início
+        </span>
+      `;
+
+
+      if (
+        projeto.dias_para_90 !== null &&
+        projeto.dias_para_90 !== undefined
+      ) {
+
+        if (projeto.dias_para_90 >= 0) {
+
+          textoResumo += `
+            <span>
+              • ${projeto.dias_para_90}
+              dias para o prazo de 90 dias
+            </span>
+          `;
+
+        } else {
+
+          textoResumo += `
+            <span>
+              • ${Math.abs(projeto.dias_para_90)}
+              dias além do prazo de 90 dias
+            </span>
+          `;
+        }
+      }
+
+
+      resumo.innerHTML =
+        textoResumo;
+
+
+      // ========================================================
+      // CAMPOS
+      // ========================================================
+
+      preencherCampo(
+        'cliente',
+        projeto.cliente
+      );
+
+      preencherCampo(
+        'segmento',
+        projeto.segmento
+      );
+
+      preencherCampo(
+        'nome',
+        projeto.nome
+      );
+
+      preencherCampo(
+        'origem_cliente',
+        projeto.origem_cliente
+      );
+
+      preencherCampo(
+        'comercial_responsavel',
+        projeto.comercial_responsavel
+      );
+
+      preencherCampo(
+        'responsavel',
+        projeto.responsavel
+      );
+
+      preencherCampo(
+        'previsao_conclusao',
+        projeto.previsao_conclusao,
+        true
+      );
+
+      preencherCampo(
+        'prazo_proxima_acao',
+        projeto.prazo_proxima_acao,
+        true
+      );
+
+      preencherCampo(
+        'data_aprovacao',
+        projeto.data_aprovacao,
+        true
+      );
+
+      preencherCampo(
+        'proxima_acao',
+        projeto.proxima_acao
+      );
+
+      preencherCampo(
+        'observacoes',
+        projeto.observacoes
+      );
+
+
+      prazo90.value =
+        dataInput(
+          projeto.prazo_90_dias
+        );
+
+
+      // ========================================================
+      // TEMPO POR ETAPA
+      // ========================================================
+
+      if (
+        Array.isArray(dados.tempos_etapa) &&
+        dados.tempos_etapa.length
+      ) {
+
+        temposEtapa.innerHTML =
+          dados.tempos_etapa
+            .map(item => `
+
+              <div class="bar-row">
+
+                <span>
+                  ${item.etapa || '—'}
+                </span>
+
+                <b>
+                  ${item.dias ?? 0} d
+                </b>
+
+              </div>
+
+            `)
+            .join('');
+
+      } else {
+
+        temposEtapa.innerHTML =
+          '<span class="muted">Sem dados ainda.</span>';
+      }
+
+
+      // ========================================================
+      // TEMPO AGUARDANDO
+      // ========================================================
+
+      if (
+        Array.isArray(dados.tempos_espera) &&
+        dados.tempos_espera.length
+      ) {
+
+        temposEspera.innerHTML =
+          dados.tempos_espera
+            .map(item => `
+
+              <div class="bar-row">
+
+                <span>
+                  ${item.area_pendente || '—'}
+                </span>
+
+                <b>
+                  ${item.dias ?? 0} d
+                </b>
+
+              </div>
+
+            `)
+            .join('');
+
+      } else {
+
+        temposEspera.innerHTML =
+          '<span class="muted">Sem dados ainda.</span>';
+      }
+
+
+      // ========================================================
+      // HISTÓRICO
+      // ========================================================
+
+      if (
+        Array.isArray(dados.historico) &&
+        dados.historico.length
+      ) {
+
+        historico.innerHTML =
+          dados.historico
+            .map(item => {
+
+              const data =
+                item.data_registro
+                  ? new Date(
+                      item.data_registro
+                    ).toLocaleString(
+                      'pt-BR'
+                    )
+                  : '—';
+
+
+              const dias =
+                Number(
+                  item.dias_na_situacao || 0
+                );
+
+
+              return `
+
+                <div class="history">
+
+                  <b>
+                    ${data}
+                  </b>
+
+                  <span class="muted">
+                    • ${dias.toFixed(1)} dias
+                  </span>
+
+                  <br>
+
+                  <span class="pill">
+                    ${item.situacao || ''}
+                  </span>
+
+                  ${item.etapa || ''}
+
+                  <br>
+
+                  <span class="muted">
+                    Aguardando:
+                    ${item.area_pendente || '—'}
+                  </span>
+
+                  ${
+                    item.pendencia_proximo_passo
+                      ? `<br>${item.pendencia_proximo_passo}`
+                      : ''
+                  }
+
+                  ${
+                    item.observacoes
+                      ? `<br><small>${item.observacoes}</small>`
+                      : ''
+                  }
+
+                </div>
+
+              `;
+            })
+            .join('');
+
+      } else {
+
+        historico.innerHTML =
+          '<span class="muted">Sem histórico.</span>';
+      }
+
+
+    } catch (erro) {
+
+      console.error(
+        'Erro ao carregar projeto:',
+        erro
+      );
+
+      alert(
+        `Não foi possível carregar o projeto.\n\n${erro.message}`
+      );
+    }
   }
-};
 
-carregarProjeto();
+
+  // ============================================================
+  // SALVAR
+  // ============================================================
+
+  form.addEventListener(
+    'submit',
+    async event => {
+
+      event.preventDefault();
+
+
+      try {
+
+        const dadosFormulario =
+          Object.fromEntries(
+            new FormData(form).entries()
+          );
+
+
+        // Campos críticos
+
+        dadosFormulario.status =
+          statusSelect.value ||
+          'Em andamento';
+
+
+        dadosFormulario.etapa_atual =
+          etapaSelect.value ||
+          'Entrada / Oportunidade';
+
+
+        dadosFormulario.area_pendente =
+          areaSelect.value ||
+          'Sem pendência';
+
+
+        const resposta =
+          await fetch(
+            `/api/projetos/${projetoId}`,
+            {
+              method: 'PUT',
+
+              headers: {
+                'Content-Type':
+                  'application/json'
+              },
+
+              body:
+                JSON.stringify(
+                  dadosFormulario
+                )
+            }
+          );
+
+
+        let resultado = {};
+
+
+        try {
+
+          resultado =
+            await resposta.json();
+
+        } catch {
+
+          resultado = {};
+        }
+
+
+        if (!resposta.ok) {
+
+          throw new Error(
+            resultado.detalhe ||
+            resultado.erro ||
+            `HTTP ${resposta.status}`
+          );
+        }
+
+
+        window.location.reload();
+
+
+      } catch (erro) {
+
+        console.error(
+          'Erro ao salvar:',
+          erro
+        );
+
+        alert(
+          `Erro ao salvar atualização.\n\n${erro.message}`
+        );
+      }
+    }
+  );
+
+
+  // ============================================================
+  // INICIAR
+  // ============================================================
+
+  await carregar();
+
+});
