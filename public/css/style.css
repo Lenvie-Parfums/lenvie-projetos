@@ -15,10 +15,10 @@ body{
      foto LENVIE ao fundo mantendo a cor original do sistema */
   background-image:
     linear-gradient(
-      rgba(245,247,251,.88),
-      rgba(245,247,251,.88)
-    ),
-    url("/assets/lenvie-background.jpg");
+   rgba(245, 247, 251, 0.68),
+    rgba(245, 247, 251, 0.68)
+  ),
+  url("/assets/lenvie-background.jpg");
 
   background-size:cover;
   background-position:center;
