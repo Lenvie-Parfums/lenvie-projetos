@@ -1,62 +1,107 @@
 <!doctype html>
+
 <html lang="pt-BR">
 
 <head>
+
   <meta charset="utf-8">
+
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1"
+    content="width=device-width,initial-scale=1"
   >
 
-  <title>Projeto | LENVIE</title>
+  <title>
+    Projeto | LENVIE
+  </title>
 
   <link
     rel="stylesheet"
     href="/css/style.css"
   >
+
 </head>
 
 <body>
 
   <header>
-    <strong>LENVIE · Projetos</strong>
+
+    <a
+      href="/"
+      class="brand"
+    >
+      <span>
+        LENVIE
+      </span>
+
+      <small>
+        Projetos
+      </small>
+    </a>
 
     <nav>
-      <a href="/">Dashboard</a>
-      <a href="/projetos.html">Projetos</a>
-      <a href="/projeto.html">Novo Projeto</a>
+
+      <a href="/">
+        Dashboard
+      </a>
+
+      <a href="/projetos.html">
+        Projetos
+      </a>
+
+      <a href="/projeto.html">
+        Novo Projeto
+      </a>
+
     </nav>
+
   </header>
 
 
   <main class="wrap">
 
-    <!-- CABEÇALHO -->
-
     <div class="page-head">
 
       <div>
-        <h1 id="titulo">Novo Projeto</h1>
+
+        <h1 id="titulo">
+          Novo Projeto
+        </h1>
 
         <div
           id="resumoProjeto"
           class="summary-line"
         ></div>
+
       </div>
 
-      <a
-        id="btnExportar"
-        class="btn secondary"
-        href="/api/relatorios/projetos.xlsx"
+
+      <div
+        id="acoesExportacao"
+        class="export-actions"
         style="display:none"
       >
-        Exportar XLSX
-      </a>
+
+        <button
+          id="btnPdf"
+          type="button"
+          class="btn secondary"
+        >
+          Exportar PDF
+        </button>
+
+        <button
+          id="btnXlsx"
+          type="button"
+          class="btn secondary"
+        >
+          Exportar XLSX
+        </button>
+
+      </div>
 
     </div>
 
-
-    <!-- FORMULÁRIO -->
 
     <form
       id="form"
@@ -64,158 +109,222 @@
     >
 
       <div>
-        <label>Cliente *</label>
+
+        <label>
+          Cliente *
+        </label>
 
         <input
           name="cliente"
           required
         >
+
       </div>
 
 
       <div>
-        <label>Segmento</label>
+
+        <label>
+          Segmento
+        </label>
 
         <input
           name="segmento"
         >
+
       </div>
 
 
       <div class="full">
-        <label>Nome do Projeto *</label>
+
+        <label>
+          Nome do Projeto *
+        </label>
 
         <input
           name="nome"
           required
         >
+
       </div>
 
 
       <div>
-        <label>Origem / Indicação</label>
+
+        <label>
+          Origem / Indicação
+        </label>
 
         <input
           name="origem_cliente"
         >
+
       </div>
 
 
       <div>
-        <label>Comercial responsável</label>
+
+        <label>
+          Comercial responsável
+        </label>
 
         <input
           name="comercial_responsavel"
         >
+
       </div>
 
 
       <div>
-        <label>Responsável pelo acompanhamento</label>
+
+        <label>
+          Responsável pelo acompanhamento
+        </label>
 
         <input
           name="responsavel"
           value="Erika"
         >
+
       </div>
 
 
       <div>
-        <label>Data de início</label>
+
+        <label>
+          Data de início
+        </label>
 
         <input
           type="date"
           name="data_inicio"
         >
+
       </div>
 
 
       <div>
-        <label>Previsão de conclusão</label>
+
+        <label>
+          Previsão de conclusão
+        </label>
 
         <input
           type="date"
           name="previsao_conclusao"
         >
+
       </div>
 
 
       <div>
-        <label>Status</label>
+
+        <label>
+          Status
+        </label>
 
         <select
           name="status"
           id="status"
         ></select>
+
       </div>
 
 
       <div>
-        <label>Etapa atual</label>
+
+        <label>
+          Etapa atual
+        </label>
 
         <select
           name="etapa_atual"
           id="etapa"
         ></select>
+
       </div>
 
 
       <div>
-        <label>Aguardando / Área pendente</label>
+
+        <label>
+          Aguardando / Área pendente
+        </label>
 
         <select
           name="area_pendente"
           id="area"
         ></select>
+
       </div>
 
 
       <div>
-        <label>Prazo da próxima ação</label>
+
+        <label>
+          Prazo da próxima ação
+        </label>
 
         <input
           type="date"
           name="prazo_proxima_acao"
         >
+
       </div>
 
 
       <div>
-        <label>Data de aprovação</label>
+
+        <label>
+          Data de aprovação
+        </label>
 
         <input
           type="date"
           name="data_aprovacao"
         >
+
       </div>
 
 
       <div>
-        <label>Prazo 90 dias</label>
+
+        <label>
+          Prazo 90 dias
+        </label>
 
         <input
           id="prazo90"
           disabled
         >
+
       </div>
 
 
       <div class="full">
-        <label>Próxima ação</label>
+
+        <label>
+          Próxima ação
+        </label>
 
         <textarea
           name="proxima_acao"
           placeholder="Ex.: Aguardar aprovação das novas amostras"
         ></textarea>
+
       </div>
 
 
       <div class="full">
-        <label>Observações gerais</label>
+
+        <label>
+          Observações gerais
+        </label>
 
         <textarea
           name="observacoes"
         ></textarea>
+
       </div>
 
 
@@ -224,12 +333,16 @@
         class="full"
         style="display:none"
       >
-        <label>Observação desta movimentação</label>
+
+        <label>
+          Observação desta movimentação
+        </label>
 
         <textarea
           name="movimentacao_observacao"
           placeholder="Ex.: Cliente pediu nova opção de fragrância"
         ></textarea>
+
       </div>
 
 
@@ -248,8 +361,6 @@
     </form>
 
 
-    <!-- SOMENTE NA EDIÇÃO -->
-
     <div
       id="blocoAcompanhamento"
       style="display:none"
@@ -259,25 +370,35 @@
 
         <section class="panel">
 
-          <h2>Tempo por etapa</h2>
+          <h2>
+            Tempo por etapa
+          </h2>
 
-          <div id="temposEtapa"></div>
+          <div
+            id="temposEtapa"
+          ></div>
 
         </section>
 
 
         <section class="panel">
 
-          <h2>Tempo aguardando</h2>
+          <h2>
+            Tempo aguardando
+          </h2>
 
-          <div id="temposEspera"></div>
+          <div
+            id="temposEspera"
+          ></div>
 
         </section>
 
       </div>
 
 
-      <h2>Histórico de Etapas</h2>
+      <h2>
+        Histórico de Etapas
+      </h2>
 
       <div
         id="historico"
@@ -289,7 +410,9 @@
   </main>
 
 
-  <script src="/js/projeto.js"></script>
+  <script
+    src="/js/projeto.js"
+  ></script>
 
 </body>
 
