@@ -13,7 +13,21 @@ const pool = new Pool({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const etapas = ['Entrada / Oportunidade','Entendimento / Briefing','Análise de Viabilidade','Envolvimento de Produtos','Definição / Amostras','Cotação / Custos','Orçamento','Ajustes / Novos Testes','Aprovação do Cliente','Produção / 90 dias','Entrega','Concluído'];
+const etapas =   [
+ 'Entrada / Oportunidade',
+  'Entendimento / Briefing',
+  'Análise de Viabilidade',
+  'Envolvimento de Produtos',
+  'Definição / Amostras',
+  'Cotação / Custos',
+  'Orçamento',
+  'Ajustes / Novos Testes',
+  'Aprovação do Cliente',
+  'Produção / 90 dias',
+  'Entrega',
+  'Concluído / Pedido Fechado',
+  'Concluído / Sem Conversão'
+];
 const areas = ['Sem pendência','Cliente','Comercial','Produtos','Fornecedor','Compras','PCP / Produção','Outro'];
 const statusProjeto = ['Em andamento','Pausado','Concluído','Cancelado'];
 
