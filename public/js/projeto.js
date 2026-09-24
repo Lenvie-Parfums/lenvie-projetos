@@ -128,6 +128,30 @@ document.addEventListener(
         'dataMovimentacao'
       );
 
+    const blocoNotificacao =
+      document.getElementById(
+        'blocoNotificacao'
+      );
+
+    const notificarResponsaveis =
+      document.getElementById(
+       'notificarResponsaveis'
+      );
+
+    const camposNotificacao =
+      document.getElementById(
+       'camposNotificacao'
+      );
+
+    const notificarComercial =
+      document.getElementById(
+       'notificarComercial'
+     );
+
+    const notificarProjeto =
+      document.getElementById(
+       'notificarProjeto'
+     );
 
     function dataInput(valor) {
 
@@ -408,9 +432,14 @@ document.addEventListener(
         'flex';
 
       blocoMovimentacao.style.display =
-        'block';
+         'block';
 
-      if (dataMovimentacao) {
+    if (blocoNotificacao) {
+      blocoNotificacao.style.display =
+         'block';
+  }
+
+    if (dataMovimentacao) {
         dataMovimentacao.value =
           hojeInput();
       }
@@ -783,7 +812,19 @@ document.addEventListener(
         'none';
     }
 
+if (notificarResponsaveis) {
 
+  notificarResponsaveis.addEventListener(
+    'change',
+    () => {
+
+      camposNotificacao.style.display =
+        notificarResponsaveis.checked
+          ? 'block'
+          : 'none';
+    }
+  );
+}
     etapaSelect.addEventListener(
       'change',
       () => {
@@ -931,7 +972,20 @@ document.addEventListener(
           dados.area_pendente =
             areaSelect.value ||
             'Sem pendência';
+          dados.notificar_responsaveis =
+             Boolean(
+             notificarResponsaveis?.checked
+           );
 
+          dados.notificar_comercial =
+             Boolean(
+             notificarComercial?.checked
+           );
+
+          dados.notificar_projeto =
+            Boolean(
+            notificarProjeto?.checked
+           );
 
           const url =
             modoEdicao
@@ -985,7 +1039,27 @@ document.addEventListener(
             );
           }
 
+        if (
+          dados.notificar_responsaveis &&
+          resultado.notificacao
+          ) {
 
+        if (resultado.notificacao.enviada) {
+
+        alert(
+        'Projeto salvo e notificação enviada com sucesso.'
+        );
+
+      } else {
+
+      alert(
+      `Projeto salvo, mas a notificação não foi enviada.\n\n${
+        resultado.notificacao.erro ||
+        'Verifique os destinatários e a configuração de e-mail.'
+      }`
+       );
+      }
+    }
           if (
             !modoEdicao &&
             resultado.id

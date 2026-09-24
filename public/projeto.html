@@ -342,6 +342,144 @@
 
       </div>
 
+      <div
+        id="blocoNotificacao"
+        class="full"
+        style="display:none"
+      >
+
+        <h2>Notificação</h2>
+
+        <label style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
+          <input
+            type="checkbox"
+            id="notificarResponsaveis"
+            name="notificar_responsaveis"
+            style="width:auto"
+          >
+          Notificar responsáveis sobre esta movimentação
+        </label>
+
+        <div
+          id="camposNotificacao"
+          style="display:none"
+        >
+
+          <div class="grid">
+
+            <div>
+
+              <label>
+                Motivo
+              </label>
+
+              <select
+                name="notificacao_motivo"
+                id="notificacaoMotivo"
+              >
+                <option value="Mudança de status">
+                  Mudança de status
+                </option>
+
+                <option value="Nova pendência">
+                  Nova pendência
+                </option>
+
+                <option value="Pendência resolvida">
+                  Pendência resolvida
+                </option>
+
+                <option value="Próxima ação">
+                  Próxima ação
+                </option>
+
+                <option value="Prazo próximo">
+                  Prazo próximo
+                </option>
+
+                <option value="Aguardando cliente">
+                  Aguardando cliente
+                </option>
+
+                <option value="Projeto aprovado">
+                  Projeto aprovado
+                </option>
+
+                <option value="Entrada em produção">
+                  Entrada em produção
+                </option>
+
+                <option value="Outro">
+                  Outro
+                </option>
+              </select>
+
+            </div>
+
+            <div>
+
+              <label>
+                E-mail adicional
+              </label>
+
+              <input
+                type="email"
+                name="notificacao_email_adicional"
+                id="notificacaoEmailAdicional"
+                placeholder="email@lenvie.com.br"
+              >
+
+            </div>
+
+          </div>
+
+          <label style="display:flex;gap:10px;align-items:center;margin-top:14px">
+
+            <input
+              type="checkbox"
+              id="notificarComercial"
+              name="notificar_comercial"
+              style="width:auto"
+              checked
+            >
+
+            Responsável Comercial
+
+          </label>
+
+          <label style="display:flex;gap:10px;align-items:center;margin-top:10px">
+
+            <input
+              type="checkbox"
+              id="notificarProjeto"
+              name="notificar_projeto"
+              style="width:auto"
+              checked
+            >
+
+            Responsável pelo Projeto
+
+          </label>
+
+          <label style="margin-top:16px">
+            Mensagem adicional
+          </label>
+
+          <textarea
+            name="notificacao_mensagem"
+            id="notificacaoMensagem"
+            placeholder="Opcional. Acrescente uma mensagem para os responsáveis."
+          ></textarea>
+
+          <small>
+            O envio é opcional. Se esta opção ficar desmarcada,
+            a movimentação será salva normalmente sem enviar notificação.
+          </small>
+
+        </div>
+
+      </div>
+
       <div class="full">
 
         <button

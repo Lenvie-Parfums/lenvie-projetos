@@ -94,6 +94,538 @@ function normalizarEmail(valor) {
     .toLowerCase();
 }
 
+function normalizarNome(valor) {
+  return String(valor || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+function escaparHtml(valor) {
+  return String(valor ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function formatarDataBR(valor) {
+  if (!valor) return '—';
+
+  const texto =
+    String(valor).slice(0, 10);
+
+  const partes =
+    texto.split('-');
+
+  if (partes.length !== 3) {
+    return texto;
+  }
+
+  return `${partes[2]}/${partes[1]}/${partes[0]}`;
+}
+
+
+async function resolverDestinatariosNotificacao(
+  client,
+  projeto,
+  body
+) {
+
+  const emails =
+    new Set();
+
+  const nomesEncontrados =
+    [];
+
+  const nomesNaoEncontrados =
+    [];
+
+  const usuarios =
+    (
+      await client.query(`
+        SELECT
+          nome,
+          email
+        FROM usuarios
+        WHERE ativo=TRUE
+      `)
+    ).rows;
+
+
+  const localizarPorNome =
+    nome => {
+
+      const alvo =
+        normalizarNome(nome);
+
+      if (!alvo) {
+        return null;
+      }
+
+      return (
+        usuarios.find(
+          usuario =>
+            normalizarNome(
+              usuario.nome
+            ) === alvo
+        ) ||
+        null
+      );
+    };
+
+
+  const adicionarResponsavel =
+    (
+      nome,
+      tipo
+    ) => {
+
+      if (!nome) {
+        return;
+      }
+
+
+      // Também permite que o próprio
+      // campo contenha um e-mail.
+
+      if (
+        String(nome).includes('@')
+      ) {
+
+        const email =
+          normalizarEmail(nome);
+
+        if (email) {
+          emails.add(email);
+        }
+
+        nomesEncontrados.push(
+          `${tipo}: ${nome}`
+        );
+
+        return;
+      }
+
+
+      const usuario =
+        localizarPorNome(nome);
+
+
+      if (
+        usuario?.email
+      ) {
+
+        emails.add(
+          normalizarEmail(
+            usuario.email
+          )
+        );
+
+        nomesEncontrados.push(
+          `${tipo}: ${usuario.nome}`
+        );
+
+      } else {
+
+        nomesNaoEncontrados.push(
+          `${tipo}: ${nome}`
+        );
+      }
+    };
+
+
+  if (
+    body.notificar_comercial
+  ) {
+
+    adicionarResponsavel(
+      projeto.comercial_responsavel,
+      'Comercial'
+    );
+  }
+
+
+  if (
+    body.notificar_projeto
+  ) {
+
+    adicionarResponsavel(
+      projeto.responsavel,
+      'Projeto'
+    );
+  }
+
+
+  const adicional =
+    normalizarEmail(
+      body.notificacao_email_adicional
+    );
+
+
+  if (adicional) {
+
+    emails.add(
+      adicional
+    );
+
+    nomesEncontrados.push(
+      `E-mail adicional: ${adicional}`
+    );
+  }
+
+
+  return {
+
+    emails:
+      [...emails],
+
+    nomesEncontrados,
+
+    nomesNaoEncontrados
+  };
+}
+
+
+async function enviarNotificacaoProjeto({
+  projeto,
+  body,
+  destinatarios,
+  usuarioNome
+}) {
+
+  const apiKey =
+    process.env.RESEND_API_KEY;
+
+  const remetente =
+    process.env.NOTIFICATION_FROM;
+
+
+  if (
+    !apiKey ||
+    !remetente
+  ) {
+
+    throw new Error(
+      'Configure RESEND_API_KEY e NOTIFICATION_FROM no Render.'
+    );
+  }
+
+
+  if (
+    !destinatarios.length
+  ) {
+
+    throw new Error(
+      'Nenhum e-mail de destinatário foi encontrado. Cadastre o responsável como usuário ou informe um e-mail adicional.'
+    );
+  }
+
+
+  const motivo =
+    String(
+      body.notificacao_motivo ||
+      'Atualização do projeto'
+    ).trim();
+
+
+  const mensagemAdicional =
+    String(
+      body.notificacao_mensagem ||
+      ''
+    ).trim();
+
+
+  const observacao =
+    String(
+      body.movimentacao_observacao ||
+      ''
+    ).trim();
+
+
+  const assunto =
+    `LENVIE | ${motivo} – ${projeto.cliente} / ${projeto.nome}`;
+
+
+  const html = `
+    <div
+      style="
+        font-family:Arial,sans-serif;
+        line-height:1.55;
+        color:#222
+      "
+    >
+
+      <h2 style="margin-bottom:6px">
+        Atualização de projeto LENVIE
+      </h2>
+
+      <p style="margin-top:0">
+        <strong>
+          ${escaparHtml(motivo)}
+        </strong>
+      </p>
+
+      <table
+        cellpadding="6"
+        cellspacing="0"
+        style="border-collapse:collapse"
+      >
+
+        <tr>
+          <td>
+            <strong>Projeto</strong>
+          </td>
+
+          <td>
+            ${escaparHtml(projeto.codigo)}
+            ·
+            ${escaparHtml(projeto.nome)}
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <strong>Cliente</strong>
+          </td>
+
+          <td>
+            ${escaparHtml(projeto.cliente)}
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <strong>Status</strong>
+          </td>
+
+          <td>
+            ${escaparHtml(projeto.status)}
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <strong>Etapa</strong>
+          </td>
+
+          <td>
+            ${escaparHtml(projeto.etapa_atual)}
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <strong>Pendência</strong>
+          </td>
+
+          <td>
+            ${
+              escaparHtml(
+                projeto.area_pendente ||
+                'Sem pendência'
+              )
+            }
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <strong>Próxima ação</strong>
+          </td>
+
+          <td>
+            ${
+              escaparHtml(
+                projeto.proxima_acao ||
+                '—'
+              )
+            }
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <strong>Prazo</strong>
+          </td>
+
+          <td>
+            ${
+              escaparHtml(
+                formatarDataBR(
+                  projeto.prazo_proxima_acao
+                )
+              )
+            }
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <strong>
+              Data da movimentação
+            </strong>
+          </td>
+
+          <td>
+            ${
+              escaparHtml(
+                formatarDataBR(
+                  body.data_movimentacao ||
+                  new Date()
+                    .toISOString()
+                    .slice(0, 10)
+                )
+              )
+            }
+          </td>
+        </tr>
+
+      </table>
+
+
+      ${
+        observacao
+
+          ? `
+            <p>
+              <strong>
+                Movimentação:
+              </strong>
+
+              <br>
+
+              ${
+                escaparHtml(
+                  observacao
+                ).replace(
+                  /\n/g,
+                  '<br>'
+                )
+              }
+            </p>
+          `
+
+          : ''
+      }
+
+
+      ${
+        mensagemAdicional
+
+          ? `
+            <p>
+              <strong>
+                Mensagem:
+              </strong>
+
+              <br>
+
+              ${
+                escaparHtml(
+                  mensagemAdicional
+                ).replace(
+                  /\n/g,
+                  '<br>'
+                )
+              }
+            </p>
+          `
+
+          : ''
+      }
+
+
+      <p
+        style="
+          color:#666;
+          font-size:12px
+        "
+      >
+
+        Atualizado por:
+        ${
+          escaparHtml(
+            usuarioNome ||
+            'LENVIE'
+          )
+        }
+
+      </p>
+
+    </div>
+  `;
+
+
+  const resposta =
+    await fetch(
+      'https://api.resend.com/emails',
+      {
+
+        method:
+          'POST',
+
+        headers: {
+
+          Authorization:
+            `Bearer ${apiKey}`,
+
+          'Content-Type':
+            'application/json'
+        },
+
+        body:
+          JSON.stringify({
+
+            from:
+              remetente,
+
+            to:
+              destinatarios,
+
+            subject:
+              assunto,
+
+            html
+          })
+      }
+    );
+
+
+  let retorno =
+    {};
+
+
+  try {
+
+    retorno =
+      await resposta.json();
+
+  } catch {
+
+    retorno =
+      {};
+  }
+
+
+  if (
+    !resposta.ok
+  ) {
+
+    throw new Error(
+      retorno.message ||
+      retorno.error ||
+      `Falha no envio de e-mail (HTTP ${resposta.status}).`
+    );
+  }
+
+
+  return retorno;
+}
+
+
 function parseCookies(req) {
   const cabecalho =
     req.headers.cookie || '';
@@ -314,19 +846,17 @@ function exigirPermissao(permissao) {
         .status(403)
         .json({
           erro:
-            'Você não possui permissão para esta ação.'
+            'Seu perfil não possui permissão para esta ação.'
         });
     }
 
     next();
   };
 }
-
-async function paginaProtegida(
+async function exigirPaginaLogada(
   req,
   res,
-  arquivo,
-  opcoes = {}
+  next
 ) {
   try {
     const usuario =
@@ -338,780 +868,108 @@ async function paginaProtegida(
       );
     }
 
-    const permissoes =
-      permissoesDoPerfil(
-        usuario.perfil
+    req.usuario =
+      usuario;
+
+    next();
+
+  } catch (erro) {
+    next(erro);
+  }
+}
+
+async function exigirPaginaAdmin(
+  req,
+  res,
+  next
+) {
+  try {
+    const usuario =
+      await carregarUsuario(req);
+
+    if (!usuario) {
+      return res.redirect(
+        '/login.html'
       );
+    }
 
     if (
-      opcoes.apenasAdmin &&
-      !permissoes.gerenciar_usuarios
+      !permissoesDoPerfil(
+        usuario.perfil
+      ).gerenciar_usuarios
     ) {
       return res.redirect('/');
     }
 
-    if (
-      opcoes.novoProjeto &&
-      !req.query.id &&
-      !permissoes.criar
-    ) {
-      return res.redirect(
-        '/projetos.html'
-      );
-    }
+    req.usuario =
+      usuario;
 
-    return res.sendFile(
-      path.join(
-        PUBLIC_DIR,
-        arquivo
+    next();
+
+  } catch (erro) {
+    next(erro);
+  }
+}
+
+async function registrarAuditoria({
+  usuarioId = null,
+  usuarioNome = null,
+  acao,
+  entidade,
+  entidadeId = null,
+  detalhes = null
+}) {
+  try {
+    await pool.query(
+      `
+      INSERT INTO auditoria (
+        usuario_id,
+        usuario_nome,
+        acao,
+        entidade,
+        entidade_id,
+        detalhes
       )
+      VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6
+      )
+      `,
+      [
+        usuarioId,
+        usuarioNome,
+        acao,
+        entidade,
+        entidadeId,
+        detalhes
+          ? JSON.stringify(detalhes)
+          : null
+      ]
     );
 
   } catch (erro) {
-    console.error(erro);
-
-    return res
-      .status(500)
-      .send('Erro ao validar acesso.');
+    console.error(
+      'Falha ao registrar auditoria:',
+      erro.message
+    );
   }
 }
 
-async function garantirEstruturaAuth() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS usuarios (
-      id SERIAL PRIMARY KEY,
-      nome VARCHAR(120) NOT NULL,
-      email VARCHAR(180) UNIQUE NOT NULL,
-      senha_hash TEXT NOT NULL,
-      perfil VARCHAR(30) NOT NULL DEFAULT 'visualizador',
-      ativo BOOLEAN NOT NULL DEFAULT TRUE,
-      criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      ultimo_acesso TIMESTAMPTZ
-    );
-
-    CREATE TABLE IF NOT EXISTS sessoes (
-      id BIGSERIAL PRIMARY KEY,
-      usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-      token_hash VARCHAR(64) UNIQUE NOT NULL,
-      criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      expira_em TIMESTAMPTZ NOT NULL
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_sessoes_token
-      ON sessoes(token_hash);
-
-    CREATE INDEX IF NOT EXISTS idx_sessoes_expira
-      ON sessoes(expira_em);
-
-    CREATE TABLE IF NOT EXISTS auditoria (
-      id BIGSERIAL PRIMARY KEY,
-      usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
-      usuario_nome VARCHAR(120),
-      acao VARCHAR(80) NOT NULL,
-      entidade VARCHAR(80),
-      entidade_id INTEGER,
-      detalhes JSONB,
-      criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-
-    ALTER TABLE IF EXISTS historico_etapas
-      ADD COLUMN IF NOT EXISTS usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL;
-
-    ALTER TABLE IF EXISTS historico_etapas
-      ADD COLUMN IF NOT EXISTS usuario_nome VARCHAR(120);
-
-    ALTER TABLE IF EXISTS historico_etapas
-      ADD COLUMN IF NOT EXISTS data_movimentacao DATE;
-
-    UPDATE historico_etapas
-    SET data_movimentacao = data_registro::date
-    WHERE data_movimentacao IS NULL;
-
-    ALTER TABLE IF EXISTS historico_etapas
-      ALTER COLUMN data_movimentacao SET DEFAULT CURRENT_DATE;
-  `);
-
-  await pool.query(`
-    DELETE FROM sessoes
-    WHERE expira_em<=NOW()
-  `);
-
-  const total =
-    await pool.query(`
-      SELECT COUNT(*)::int total
-      FROM usuarios
-    `);
-
-  if (total.rows[0].total === 0) {
-    const email =
-      normalizarEmail(
-        process.env.ADMIN_EMAIL
-      );
-
-    const senha =
-      process.env.ADMIN_PASSWORD;
-
-    const nome =
-      process.env.ADMIN_NAME ||
-      'Administrador';
-
-    if (email && senha) {
-      if (senha.length < 8) {
-        throw new Error(
-          'ADMIN_PASSWORD deve possuir pelo menos 8 caracteres.'
-        );
-      }
-
-      await pool.query(
-        `
-        INSERT INTO usuarios (
-          nome,
-          email,
-          senha_hash,
-          perfil,
-          ativo
-        )
-        VALUES ($1,$2,$3,'administrador',TRUE)
-        `,
-        [
-          nome,
-          email,
-          hashSenha(senha)
-        ]
-      );
-
-      console.log(
-        `Usuário administrador inicial criado: ${email}`
-      );
-
-    } else {
-      console.warn(
-        'Nenhum usuário cadastrado. Defina ADMIN_EMAIL e ADMIN_PASSWORD no ambiente para criar o administrador inicial.'
-      );
-    }
-  }
-}
-
-async function registrarAuditoria(
-  client,
-  req,
-  acao,
-  entidade,
-  entidadeId,
-  detalhes = {}
-) {
-  await client.query(
-    `
-    INSERT INTO auditoria (
-      usuario_id,
-      usuario_nome,
-      acao,
-      entidade,
-      entidade_id,
-      detalhes
-    )
-    VALUES ($1,$2,$3,$4,$5,$6::jsonb)
-    `,
-    [
-      req.usuario?.id || null,
-      req.usuario?.nome || null,
-      acao,
-      entidade,
-      entidadeId || null,
-      JSON.stringify(detalhes || {})
-    ]
-  );
-}
 
 // ============================================================
-// PÁGINAS
+// CONFIGURAÇÕES DE NEGÓCIO
 // ============================================================
 
-app.get(
-  '/login.html',
-  async (req, res, next) => {
-    try {
-      const usuario =
-        await carregarUsuario(req);
-
-      if (usuario) {
-        return res.redirect('/');
-      }
-
-      return res.sendFile(
-        path.join(
-          PUBLIC_DIR,
-          'login.html'
-        )
-      );
-
-    } catch (erro) {
-      next(erro);
-    }
-  }
-);
-
-app.get(
-  '/',
-  (req, res) =>
-    paginaProtegida(
-      req,
-      res,
-      'index.html'
-    )
-);
-
-app.get(
-  '/index.html',
-  (req, res) =>
-    paginaProtegida(
-      req,
-      res,
-      'index.html'
-    )
-);
-
-app.get(
-  '/projetos.html',
-  (req, res) =>
-    paginaProtegida(
-      req,
-      res,
-      'projetos.html'
-    )
-);
-
-app.get(
-  '/projeto.html',
-  (req, res) =>
-    paginaProtegida(
-      req,
-      res,
-      'projeto.html',
-      {
-        novoProjeto: true
-      }
-    )
-);
-
-app.get(
-  '/usuarios.html',
-  (req, res) =>
-    paginaProtegida(
-      req,
-      res,
-      'usuarios.html',
-      {
-        apenasAdmin: true
-      }
-    )
-);
-
-// ============================================================
-// API DE AUTENTICAÇÃO
-// ============================================================
-
-app.post(
-  '/api/auth/login',
-  async (req, res, next) => {
-    try {
-      const email =
-        normalizarEmail(
-          req.body.email
-        );
-
-      const senha =
-        String(
-          req.body.senha || ''
-        );
-
-      if (!email || !senha) {
-        return res
-          .status(400)
-          .json({
-            erro:
-              'Informe e-mail e senha.'
-          });
-      }
-
-      const q =
-        await pool.query(
-          `
-          SELECT *
-          FROM usuarios
-          WHERE email=$1
-          LIMIT 1
-          `,
-          [email]
-        );
-
-      const usuario =
-        q.rows[0];
-
-      if (
-        !usuario ||
-        !usuario.ativo ||
-        !validarSenha(
-          senha,
-          usuario.senha_hash
-        )
-      ) {
-        return res
-          .status(401)
-          .json({
-            erro:
-              'E-mail ou senha inválidos.'
-          });
-      }
-
-      const token =
-        crypto
-          .randomBytes(32)
-          .toString('hex');
-
-      await pool.query(
-        `
-        INSERT INTO sessoes (
-          usuario_id,
-          token_hash,
-          expira_em
-        )
-        VALUES (
-          $1,
-          $2,
-          NOW() + ($3::int * INTERVAL '1 hour')
-        )
-        `,
-        [
-          usuario.id,
-          hashToken(token),
-          DURACAO_SESSAO_HORAS
-        ]
-      );
-
-      await pool.query(
-        `
-        UPDATE usuarios
-        SET ultimo_acesso=NOW()
-        WHERE id=$1
-        `,
-        [usuario.id]
-      );
-
-      res.setHeader(
-        'Set-Cookie',
-        cookieSessao(token)
-      );
-
-      return res.json({
-        id: usuario.id,
-        nome: usuario.nome,
-        email: usuario.email,
-        perfil: usuario.perfil,
-        permissoes:
-          permissoesDoPerfil(
-            usuario.perfil
-          )
-      });
-
-    } catch (erro) {
-      next(erro);
-    }
-  }
-);
-
-app.post(
-  '/api/auth/logout',
-  async (req, res, next) => {
-    try {
-      const token =
-        parseCookies(req)[COOKIE_SESSAO];
-
-      if (token) {
-        await pool.query(
-          `
-          DELETE FROM sessoes
-          WHERE token_hash=$1
-          `,
-          [hashToken(token)]
-        );
-      }
-
-      res.setHeader(
-        'Set-Cookie',
-        cookieSessao('', true)
-      );
-
-      return res.json({
-        ok: true
-      });
-
-    } catch (erro) {
-      next(erro);
-    }
-  }
-);
-
-app.get(
-  '/api/auth/me',
-  exigirLogin,
-  (req, res) => {
-    res.json({
-      ...req.usuario,
-      permissoes:
-        permissoesDoPerfil(
-          req.usuario.perfil
-        )
-    });
-  }
-);
-
-app.use(
-  '/api',
-  exigirLogin
-);
-
-app.use(
-  '/relatorios',
-  exigirLogin
-);
-
-// ============================================================
-// USUÁRIOS
-// ============================================================
-
-app.get(
-  '/api/usuarios',
-  exigirPermissao(
-    'gerenciar_usuarios'
-  ),
-  async (req, res, next) => {
-    try {
-      const q =
-        await pool.query(`
-          SELECT
-            id,
-            nome,
-            email,
-            perfil,
-            ativo,
-            criado_em,
-            ultimo_acesso
-          FROM usuarios
-          ORDER BY nome, email
-        `);
-
-      res.json(q.rows);
-
-    } catch (erro) {
-      next(erro);
-    }
-  }
-);
-
-app.post(
-  '/api/usuarios',
-  exigirPermissao(
-    'gerenciar_usuarios'
-  ),
-  async (req, res, next) => {
-    try {
-      const nome =
-        String(
-          req.body.nome || ''
-        ).trim();
-
-      const email =
-        normalizarEmail(
-          req.body.email
-        );
-
-      const senha =
-        String(
-          req.body.senha || ''
-        );
-
-      const perfil =
-        String(
-          req.body.perfil ||
-          'visualizador'
-        );
-
-      if (
-        !nome ||
-        !email ||
-        !senha
-      ) {
-        return res
-          .status(400)
-          .json({
-            erro:
-              'Nome, e-mail e senha são obrigatórios.'
-          });
-      }
-
-      if (senha.length < 8) {
-        return res
-          .status(400)
-          .json({
-            erro:
-              'A senha deve possuir pelo menos 8 caracteres.'
-          });
-      }
-
-      if (!PERFIS.includes(perfil)) {
-        return res
-          .status(400)
-          .json({
-            erro:
-              'Perfil inválido.'
-          });
-      }
-
-      const q =
-        await pool.query(
-          `
-          INSERT INTO usuarios (
-            nome,
-            email,
-            senha_hash,
-            perfil,
-            ativo
-          )
-          VALUES ($1,$2,$3,$4,TRUE)
-          RETURNING
-            id,
-            nome,
-            email,
-            perfil,
-            ativo,
-            criado_em,
-            ultimo_acesso
-          `,
-          [
-            nome,
-            email,
-            hashSenha(senha),
-            perfil
-          ]
-        );
-
-      await registrarAuditoria(
-        pool,
-        req,
-        'CRIAR_USUARIO',
-        'usuario',
-        q.rows[0].id,
-        {
-          email,
-          perfil
-        }
-      );
-
-      res
-        .status(201)
-        .json(q.rows[0]);
-
-    } catch (erro) {
-      if (erro.code === '23505') {
-        return res
-          .status(409)
-          .json({
-            erro:
-              'Já existe um usuário com este e-mail.'
-          });
-      }
-
-      next(erro);
-    }
-  }
-);
-
-app.put(
-  '/api/usuarios/:id',
-  exigirPermissao(
-    'gerenciar_usuarios'
-  ),
-  async (req, res, next) => {
-    try {
-      const id =
-        Number(req.params.id);
-
-      if (!Number.isInteger(id)) {
-        return res
-          .status(400)
-          .json({
-            erro:
-              'Usuário inválido.'
-          });
-      }
-
-      const atual =
-        await pool.query(
-          `
-          SELECT *
-          FROM usuarios
-          WHERE id=$1
-          `,
-          [id]
-        );
-
-      if (!atual.rowCount) {
-        return res
-          .status(404)
-          .json({
-            erro:
-              'Usuário não encontrado.'
-          });
-      }
-
-      const antigo =
-        atual.rows[0];
-
-      const nome =
-        String(
-          req.body.nome ??
-          antigo.nome
-        ).trim();
-
-      const email =
-        normalizarEmail(
-          req.body.email ??
-          antigo.email
-        );
-
-      const perfil =
-        String(
-          req.body.perfil ??
-          antigo.perfil
-        );
-
-      const ativo =
-        req.body.ativo === undefined
-          ? antigo.ativo
-          : Boolean(req.body.ativo);
-
-      const senha =
-        String(
-          req.body.senha || ''
-        );
-
-      if (!PERFIS.includes(perfil)) {
-        return res
-          .status(400)
-          .json({
-            erro:
-              'Perfil inválido.'
-          });
-      }
-
-      if (
-        id === req.usuario.id &&
-        (!ativo ||
-          perfil !== 'administrador')
-      ) {
-        return res
-          .status(400)
-          .json({
-            erro:
-              'Você não pode desativar ou remover seu próprio perfil de administrador.'
-          });
-      }
-
-      if (
-        senha &&
-        senha.length < 8
-      ) {
-        return res
-          .status(400)
-          .json({
-            erro:
-              'A nova senha deve possuir pelo menos 8 caracteres.'
-          });
-      }
-
-      const senhaHash =
-        senha
-          ? hashSenha(senha)
-          : antigo.senha_hash;
-
-      const q =
-        await pool.query(
-          `
-          UPDATE usuarios
-          SET
-            nome=$1,
-            email=$2,
-            perfil=$3,
-            ativo=$4,
-            senha_hash=$5,
-            atualizado_em=NOW()
-          WHERE id=$6
-          RETURNING
-            id,
-            nome,
-            email,
-            perfil,
-            ativo,
-            criado_em,
-            ultimo_acesso
-          `,
-          [
-            nome,
-            email,
-            perfil,
-            ativo,
-            senhaHash,
-            id
-          ]
-        );
-
-      if (!ativo || senha) {
-        await pool.query(
-          `
-          DELETE FROM sessoes
-          WHERE usuario_id=$1
-          `,
-          [id]
-        );
-      }
-
-      await registrarAuditoria(
-        pool,
-        req,
-        'ATUALIZAR_USUARIO',
-        'usuario',
-        id,
-        {
-          email,
-          perfil,
-          ativo,
-          senha_alterada:
-            Boolean(senha)
-        }
-      );
-
-      res.json(q.rows[0]);
-
-    } catch (erro) {
-      if (erro.code === '23505') {
-        return res
-          .status(409)
-          .json({
-            erro:
-              'Já existe um usuário com este e-mail.'
-          });
-      }
-
-      next(erro);
-    }
-  }
-);
-
-// ============================================================
-// CONFIGURAÇÕES
-// ============================================================
+const statusProjetos = [
+  'Em andamento',
+  'Pausado',
+  'Concluído',
+  'Cancelado'
+];
 
 const etapas = [
   'Entrada / Oportunidade',
@@ -1140,330 +998,1370 @@ const areas = [
   'Outro'
 ];
 
-const statusProjeto = [
-  'Em andamento',
-  'Pausado',
-  'Concluído',
-  'Cancelado'
-];
+function codigo(numero) {
+  return (
+    'PRJ-' +
+    String(numero)
+      .padStart(4, '0')
+  );
+}
 
-const codigo = n =>
-  `PRJ-${String(n).padStart(3, '0')}`;
+function keep(
+  valor,
+  atual
+) {
+  return (
+    valor === undefined
+      ? atual
+      : valor
+  );
+}
 
-const keep = (v, atual) =>
-  (v === undefined || v === null || v === '')
-    ? atual
-    : v;
+function nullable(
+  body,
+  campo,
+  atual
+) {
+  if (
+    !Object.prototype
+      .hasOwnProperty
+      .call(body, campo)
+  ) {
+    return atual;
+  }
 
-const nullable = (body, key, atual) =>
-  body[key] === undefined
-    ? atual
-    : (body[key] || null);
+  const valor =
+    body[campo];
 
+  if (
+    valor === '' ||
+    valor === undefined
+  ) {
+    return null;
+  }
 
-// ============================================================
-// HELPERS
-// ============================================================
+  return valor;
+}
 
 function situacaoSQL(alias = 'p') {
+  return `
+    CASE
 
-  return `CASE
+      WHEN ${alias}.status='Concluído'
+        THEN 'CONCLUÍDO'
 
-    WHEN ${alias}.status='Concluído'
-      THEN 'CONCLUÍDO'
+      WHEN ${alias}.status='Cancelado'
+        THEN 'CANCELADO'
 
-    WHEN ${alias}.status='Cancelado'
-      THEN 'CANCELADO'
+      WHEN ${alias}.status='Pausado'
+        THEN 'PAUSADO'
 
-    WHEN ${alias}.status='Pausado'
-      THEN 'PAUSADO'
+      WHEN
+        ${alias}.prazo_90_dias IS NOT NULL
+        AND ${alias}.prazo_90_dias<CURRENT_DATE
+        THEN 'PRAZO 90 DIAS VENCIDO'
 
-    WHEN ${alias}.prazo_proxima_acao IS NOT NULL
-      AND ${alias}.prazo_proxima_acao < CURRENT_DATE
-      THEN 'AÇÃO VENCIDA'
+      WHEN
+        ${alias}.prazo_proxima_acao IS NOT NULL
+        AND ${alias}.prazo_proxima_acao<CURRENT_DATE
+        THEN 'AÇÃO VENCIDA'
 
-    WHEN ${alias}.prazo_90_dias IS NOT NULL
-      AND ${alias}.prazo_90_dias < CURRENT_DATE
-      THEN '90 DIAS VENCIDO'
+      WHEN
+        ${alias}.previsao_conclusao IS NOT NULL
+        AND ${alias}.previsao_conclusao<CURRENT_DATE
+        THEN 'ATRASADO'
 
-    WHEN ${alias}.previsao_conclusao IS NOT NULL
-      AND ${alias}.previsao_conclusao < CURRENT_DATE
-      THEN 'ATRASADO'
+      WHEN
+        ${alias}.area_pendente='Cliente'
+        THEN 'AGUARDANDO CLIENTE'
 
-    WHEN ${alias}.atualizado_em < NOW() - INTERVAL '15 days'
-      THEN 'SEM ATUALIZAÇÃO'
+      WHEN
+        ${alias}.area_pendente IS NOT NULL
+        AND ${alias}.area_pendente<>'Sem pendência'
+        THEN 'AGUARDANDO ' ||
+          UPPER(${alias}.area_pendente)
 
-    WHEN ${alias}.prazo_90_dias IS NOT NULL
-      AND ${alias}.prazo_90_dias <= CURRENT_DATE + 15
-      THEN '90 DIAS EM ATENÇÃO'
+      WHEN
+        ${alias}.atualizado_em<
+          NOW()-INTERVAL '15 days'
+        THEN 'SEM ATUALIZAÇÃO'
 
-    WHEN ${alias}.area_pendente <> 'Sem pendência'
-      THEN 'AGUARDANDO ' || UPPER(${alias}.area_pendente)
+      ELSE 'EM ANDAMENTO'
 
-    ELSE 'NO PRAZO'
-
-  END`;
-}
-
-
-function parseIds(valor) {
-
-  if (!valor) {
-    return [];
-  }
-
-  return [
-    ...new Set(
-      String(valor)
-        .split(',')
-        .map(Number)
-        .filter(
-          id =>
-            Number.isInteger(id) &&
-            id > 0
-        )
-    )
-  ];
-}
-
-
-function escapeHtml(valor) {
-
-  return String(valor ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
-
-
-function dataBR(valor) {
-
-  if (!valor) {
-    return '—';
-  }
-
-  const data =
-    valor instanceof Date
-      ? valor
-      : new Date(valor);
-
-  if (Number.isNaN(data.getTime())) {
-    return '—';
-  }
-
-  return data.toLocaleDateString('pt-BR');
-}
-
-
-function dataHoraBR(valor) {
-
-  if (!valor) {
-    return '—';
-  }
-
-  const data =
-    valor instanceof Date
-      ? valor
-      : new Date(valor);
-
-  if (Number.isNaN(data.getTime())) {
-    return '—';
-  }
-
-  return data.toLocaleString('pt-BR');
-}
-
-
-function styleHeader(row) {
-
-  row.font = {
-    bold: true,
-    color: {
-      argb: 'FFFFFFFF'
-    }
-  };
-
-  row.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: {
-      argb: 'FF66745C'
-    }
-  };
-
-  row.alignment = {
-    vertical: 'middle'
-  };
-}
-
-
-function autoWidth(ws) {
-
-  ws.columns.forEach(col => {
-
-    let tamanho = 10;
-
-    col.eachCell(
-      { includeEmpty: true },
-      cell => {
-
-        tamanho = Math.max(
-          tamanho,
-          String(cell.value ?? '').length + 2
-        );
-      }
-    );
-
-    col.width =
-      Math.min(tamanho, 45);
-  });
+    END
+  `;
 }
 
 
 // ============================================================
-// CONFIG
+// INICIALIZAÇÃO DO BANCO
+// ============================================================
+
+async function inicializarBanco() {
+  const c =
+    await pool.connect();
+
+  try {
+    await c.query('BEGIN');
+
+    await c.query(`
+      CREATE TABLE IF NOT EXISTS usuarios (
+        id SERIAL PRIMARY KEY,
+        nome TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        senha_hash TEXT NOT NULL,
+        perfil TEXT NOT NULL
+          DEFAULT 'visualizador',
+        ativo BOOLEAN NOT NULL
+          DEFAULT TRUE,
+        criado_em TIMESTAMPTZ NOT NULL
+          DEFAULT NOW(),
+        atualizado_em TIMESTAMPTZ NOT NULL
+          DEFAULT NOW()
+      )
+    `);
+
+    await c.query(`
+      CREATE TABLE IF NOT EXISTS sessoes (
+        id BIGSERIAL PRIMARY KEY,
+        usuario_id INTEGER NOT NULL
+          REFERENCES usuarios(id)
+          ON DELETE CASCADE,
+        token_hash TEXT NOT NULL UNIQUE,
+        criado_em TIMESTAMPTZ NOT NULL
+          DEFAULT NOW(),
+        expira_em TIMESTAMPTZ NOT NULL
+      )
+    `);
+
+    await c.query(`
+      CREATE INDEX IF NOT EXISTS
+        idx_sessoes_token_hash
+      ON sessoes(token_hash)
+    `);
+
+    await c.query(`
+      CREATE INDEX IF NOT EXISTS
+        idx_sessoes_expira_em
+      ON sessoes(expira_em)
+    `);
+
+    await c.query(`
+      CREATE TABLE IF NOT EXISTS auditoria (
+        id BIGSERIAL PRIMARY KEY,
+        usuario_id INTEGER NULL,
+        usuario_nome TEXT NULL,
+        acao TEXT NOT NULL,
+        entidade TEXT NOT NULL,
+        entidade_id TEXT NULL,
+        detalhes JSONB NULL,
+        criado_em TIMESTAMPTZ NOT NULL
+          DEFAULT NOW()
+      )
+    `);
+
+    await c.query(`
+      CREATE TABLE IF NOT EXISTS projetos (
+        id SERIAL PRIMARY KEY,
+        codigo TEXT NOT NULL UNIQUE,
+        cliente TEXT NOT NULL,
+        segmento TEXT,
+        nome TEXT NOT NULL,
+        responsavel TEXT,
+        data_inicio DATE NOT NULL
+          DEFAULT CURRENT_DATE,
+        previsao_conclusao DATE,
+        status TEXT NOT NULL
+          DEFAULT 'Em andamento',
+        etapa_atual TEXT NOT NULL
+          DEFAULT 'Entrada / Oportunidade',
+        area_pendente TEXT NOT NULL
+          DEFAULT 'Sem pendência',
+        proxima_acao TEXT,
+        prazo_proxima_acao DATE,
+        data_aprovacao DATE,
+        prazo_90_dias DATE,
+        data_conclusao DATE,
+        observacoes TEXT,
+        origem_cliente TEXT,
+        comercial_responsavel TEXT,
+        criado_em TIMESTAMPTZ NOT NULL
+          DEFAULT NOW(),
+        atualizado_em TIMESTAMPTZ NOT NULL
+          DEFAULT NOW()
+      )
+    `);
+
+    await c.query(`
+      ALTER TABLE projetos
+      ADD COLUMN IF NOT EXISTS
+        origem_cliente TEXT
+    `);
+
+    await c.query(`
+      ALTER TABLE projetos
+      ADD COLUMN IF NOT EXISTS
+        comercial_responsavel TEXT
+    `);
+
+    await c.query(`
+      ALTER TABLE projetos
+      ADD COLUMN IF NOT EXISTS
+        data_conclusao DATE
+    `);
+
+    await c.query(`
+      CREATE TABLE IF NOT EXISTS historico_etapas (
+        id BIGSERIAL PRIMARY KEY,
+        projeto_id INTEGER NOT NULL
+          REFERENCES projetos(id)
+          ON DELETE CASCADE,
+        data_registro TIMESTAMPTZ NOT NULL
+          DEFAULT NOW(),
+        data_movimentacao DATE,
+        etapa TEXT,
+        area_pendente TEXT,
+        situacao TEXT,
+        pendencia_proximo_passo TEXT,
+        observacoes TEXT,
+        usuario_id INTEGER,
+        usuario_nome TEXT
+      )
+    `);
+
+    await c.query(`
+      ALTER TABLE historico_etapas
+      ADD COLUMN IF NOT EXISTS
+        data_movimentacao DATE
+    `);
+
+    await c.query(`
+      ALTER TABLE historico_etapas
+      ADD COLUMN IF NOT EXISTS
+        usuario_id INTEGER
+    `);
+
+    await c.query(`
+      ALTER TABLE historico_etapas
+      ADD COLUMN IF NOT EXISTS
+        usuario_nome TEXT
+    `);
+
+    await c.query(`
+      CREATE INDEX IF NOT EXISTS
+        idx_historico_projeto
+      ON historico_etapas(projeto_id)
+    `);
+
+    await c.query(`
+      CREATE INDEX IF NOT EXISTS
+        idx_historico_movimentacao
+      ON historico_etapas(
+        projeto_id,
+        data_movimentacao
+      )
+    `);
+
+    await c.query(`
+      DELETE FROM sessoes
+      WHERE expira_em<=NOW()
+    `);
+
+
+    // ========================================================
+    // ADMINISTRADOR INICIAL
+    // ========================================================
+
+    const adminEmail =
+      normalizarEmail(
+        process.env.ADMIN_EMAIL
+      );
+
+    const adminSenha =
+      process.env.ADMIN_PASSWORD;
+
+    const adminNome =
+      String(
+        process.env.ADMIN_NAME ||
+        'Administrador'
+      ).trim();
+
+
+    if (
+      adminEmail &&
+      adminSenha
+    ) {
+      const existe =
+        await c.query(
+          `
+          SELECT id
+          FROM usuarios
+          WHERE LOWER(email)=LOWER($1)
+          LIMIT 1
+          `,
+          [adminEmail]
+        );
+
+      if (!existe.rowCount) {
+        await c.query(
+          `
+          INSERT INTO usuarios (
+            nome,
+            email,
+            senha_hash,
+            perfil,
+            ativo
+          )
+          VALUES (
+            $1,
+            $2,
+            $3,
+            'administrador',
+            TRUE
+          )
+          `,
+          [
+            adminNome,
+            adminEmail,
+            hashSenha(adminSenha)
+          ]
+        );
+
+        console.log(
+          'Administrador inicial criado.'
+        );
+      }
+    }
+
+    await c.query('COMMIT');
+
+  } catch (erro) {
+    await c.query('ROLLBACK');
+    throw erro;
+
+  } finally {
+    c.release();
+  }
+}
+
+
+// ============================================================
+// ROTAS PÚBLICAS DE AUTENTICAÇÃO
+// ============================================================
+
+app.get(
+  '/api/auth/me',
+  async (
+    req,
+    res,
+    next
+  ) => {
+    try {
+      const usuario =
+        await carregarUsuario(req);
+
+      if (!usuario) {
+        return res
+          .status(401)
+          .json({
+            autenticado: false
+          });
+      }
+
+      res.json({
+        autenticado: true,
+
+        usuario: {
+          id:
+            usuario.id,
+
+          nome:
+            usuario.nome,
+
+          email:
+            usuario.email,
+
+          perfil:
+            usuario.perfil,
+
+          permissoes:
+            permissoesDoPerfil(
+              usuario.perfil
+            )
+        }
+      });
+
+    } catch (erro) {
+      next(erro);
+    }
+  }
+);
+
+
+app.post(
+  '/api/auth/login',
+  async (
+    req,
+    res,
+    next
+  ) => {
+    try {
+      const email =
+        normalizarEmail(
+          req.body?.email
+        );
+
+      const senha =
+        String(
+          req.body?.senha ||
+          ''
+        );
+
+
+      if (
+        !email ||
+        !senha
+      ) {
+        return res
+          .status(400)
+          .json({
+            erro:
+              'Informe e-mail e senha.'
+          });
+      }
+
+
+      const q =
+        await pool.query(
+          `
+          SELECT
+            id,
+            nome,
+            email,
+            senha_hash,
+            perfil,
+            ativo
+          FROM usuarios
+          WHERE LOWER(email)=LOWER($1)
+          LIMIT 1
+          `,
+          [email]
+        );
+
+
+      const usuario =
+        q.rows[0];
+
+
+      if (
+        !usuario ||
+        !usuario.ativo ||
+        !validarSenha(
+          senha,
+          usuario.senha_hash
+        )
+      ) {
+        return res
+          .status(401)
+          .json({
+            erro:
+              'E-mail ou senha inválidos.'
+          });
+      }
+
+
+      const token =
+        crypto
+          .randomBytes(32)
+          .toString('hex');
+
+
+      await pool.query(
+        `
+        INSERT INTO sessoes (
+          usuario_id,
+          token_hash,
+          expira_em
+        )
+        VALUES (
+          $1,
+          $2,
+          NOW() +
+            ($3 || ' hours')::interval
+        )
+        `,
+        [
+          usuario.id,
+          hashToken(token),
+          DURACAO_SESSAO_HORAS
+        ]
+      );
+
+
+      res.setHeader(
+        'Set-Cookie',
+        cookieSessao(token)
+      );
+
+
+      await registrarAuditoria({
+        usuarioId:
+          usuario.id,
+
+        usuarioNome:
+          usuario.nome,
+
+        acao:
+          'LOGIN',
+
+        entidade:
+          'SESSAO',
+
+        entidadeId:
+          usuario.id
+      });
+
+
+      res.json({
+        ok: true,
+
+        usuario: {
+          id:
+            usuario.id,
+
+          nome:
+            usuario.nome,
+
+          email:
+            usuario.email,
+
+          perfil:
+            usuario.perfil,
+
+          permissoes:
+            permissoesDoPerfil(
+              usuario.perfil
+            )
+        }
+      });
+
+    } catch (erro) {
+      next(erro);
+    }
+  }
+);
+
+
+app.post(
+  '/api/auth/logout',
+  async (
+    req,
+    res,
+    next
+  ) => {
+    try {
+      const token =
+        parseCookies(req)[
+          COOKIE_SESSAO
+        ];
+
+      if (token) {
+        await pool.query(
+          `
+          DELETE FROM sessoes
+          WHERE token_hash=$1
+          `,
+          [hashToken(token)]
+        );
+      }
+
+
+      res.setHeader(
+        'Set-Cookie',
+        cookieSessao('', true)
+      );
+
+
+      res.json({
+        ok: true
+      });
+
+    } catch (erro) {
+      next(erro);
+    }
+  }
+);
+
+
+// ============================================================
+// PROTEÇÃO DAS PÁGINAS
+// ============================================================
+
+app.get(
+  '/',
+  exigirPaginaLogada,
+  (
+    req,
+    res
+  ) => {
+
+    res.sendFile(
+      path.join(
+        PUBLIC_DIR,
+        'index.html'
+      )
+    );
+  }
+);
+
+
+app.get(
+  '/projetos.html',
+  exigirPaginaLogada,
+  (
+    req,
+    res
+  ) => {
+
+    res.sendFile(
+      path.join(
+        PUBLIC_DIR,
+        'projetos.html'
+      )
+    );
+  }
+);
+
+
+app.get(
+  '/projeto.html',
+  exigirPaginaLogada,
+  (
+    req,
+    res
+  ) => {
+
+    res.sendFile(
+      path.join(
+        PUBLIC_DIR,
+        'projeto.html'
+      )
+    );
+  }
+);
+
+
+app.get(
+  '/usuarios.html',
+  exigirPaginaAdmin,
+  (
+    req,
+    res
+  ) => {
+
+    res.sendFile(
+      path.join(
+        PUBLIC_DIR,
+        'usuarios.html'
+      )
+    );
+  }
+);
+
+// ============================================================
+// ARQUIVOS PÚBLICOS PERMITIDOS
+// ============================================================
+
+app.get(
+  '/login.html',
+  (
+    req,
+    res
+  ) => {
+
+    res.sendFile(
+      path.join(
+        PUBLIC_DIR,
+        'login.html'
+      )
+    );
+  }
+);
+
+
+// ============================================================
+// API - CONFIGURAÇÕES
 // ============================================================
 
 app.get(
   '/api/config',
-  (req, res) => {
+  exigirLogin,
+  (
+    req,
+    res
+  ) => {
 
     res.json({
+      status:
+        statusProjetos,
+
       etapas,
+
       areas,
-      status: statusProjeto
+
+      usuario: {
+        id:
+          req.usuario.id,
+
+        nome:
+          req.usuario.nome,
+
+        email:
+          req.usuario.email,
+
+        perfil:
+          req.usuario.perfil,
+
+        permissoes:
+          permissoesDoPerfil(
+            req.usuario.perfil
+          )
+      }
     });
   }
 );
 
 
 // ============================================================
-// INDICADORES
+// API - USUÁRIOS
 // ============================================================
 
 app.get(
-  '/api/indicadores',
-  async (req, res, next) => {
+  '/api/usuarios',
+  exigirLogin,
+  exigirPermissao(
+    'gerenciar_usuarios'
+  ),
+  async (
+    req,
+    res,
+    next
+  ) => {
 
     try {
 
-      const agora = new Date();
-      const anoInformado = Number(req.query.ano);
-      const mesInformado = Number(req.query.mes);
+      const q =
+        await pool.query(`
+          SELECT
+            id,
+            nome,
+            email,
+            perfil,
+            ativo,
+            criado_em,
+            atualizado_em
 
-      const ano = Number.isInteger(anoInformado) && anoInformado >= 2000 && anoInformado <= 2100
-        ? anoInformado
-        : agora.getFullYear();
+          FROM usuarios
 
-      const mes = Number.isInteger(mesInformado) && mesInformado >= 1 && mesInformado <= 12
-        ? mesInformado
-        : agora.getMonth() + 1;
+          ORDER BY
+            ativo DESC,
+            nome ASC
+        `);
 
-      const inicioPeriodo = `${ano}-${String(mes).padStart(2, '0')}-01`;
+
+      res.json(
+        q.rows
+      );
+
+    } catch (erro) {
+
+      next(erro);
+    }
+  }
+);
+
+
+app.post(
+  '/api/usuarios',
+  exigirLogin,
+  exigirPermissao(
+    'gerenciar_usuarios'
+  ),
+  async (
+    req,
+    res,
+    next
+  ) => {
+
+    try {
+
+      const nome =
+        String(
+          req.body?.nome ||
+          ''
+        ).trim();
+
+
+      const email =
+        normalizarEmail(
+          req.body?.email
+        );
+
+
+      const senha =
+        String(
+          req.body?.senha ||
+          ''
+        );
+
+
+      const perfil =
+        String(
+          req.body?.perfil ||
+          'visualizador'
+        ).toLowerCase();
+
+
+      if (
+        !nome ||
+        !email ||
+        !senha
+      ) {
+
+        return res
+          .status(400)
+          .json({
+            erro:
+              'Nome, e-mail e senha são obrigatórios.'
+          });
+      }
+
+
+      if (
+        !PERFIS.includes(
+          perfil
+        )
+      ) {
+
+        return res
+          .status(400)
+          .json({
+            erro:
+              'Perfil de usuário inválido.'
+          });
+      }
+
+
+      if (
+        senha.length < 6
+      ) {
+
+        return res
+          .status(400)
+          .json({
+            erro:
+              'A senha deve possuir pelo menos 6 caracteres.'
+          });
+      }
+
+
+      const existente =
+        await pool.query(
+          `
+          SELECT id
+          FROM usuarios
+          WHERE LOWER(email)=LOWER($1)
+          LIMIT 1
+          `,
+          [email]
+        );
+
+
+      if (
+        existente.rowCount
+      ) {
+
+        return res
+          .status(409)
+          .json({
+            erro:
+              'Já existe um usuário com este e-mail.'
+          });
+      }
+
+
+      const q =
+        await pool.query(
+          `
+          INSERT INTO usuarios (
+            nome,
+            email,
+            senha_hash,
+            perfil,
+            ativo
+          )
+
+          VALUES (
+            $1,
+            $2,
+            $3,
+            $4,
+            TRUE
+          )
+
+          RETURNING
+            id,
+            nome,
+            email,
+            perfil,
+            ativo,
+            criado_em,
+            atualizado_em
+          `,
+          [
+            nome,
+            email,
+            hashSenha(senha),
+            perfil
+          ]
+        );
+
+
+      await registrarAuditoria({
+
+        usuarioId:
+          req.usuario.id,
+
+        usuarioNome:
+          req.usuario.nome,
+
+        acao:
+          'CRIAR_USUARIO',
+
+        entidade:
+          'USUARIO',
+
+        entidadeId:
+          q.rows[0].id,
+
+        detalhes: {
+          nome,
+          email,
+          perfil
+        }
+      });
+
+
+      res
+        .status(201)
+        .json(
+          q.rows[0]
+        );
+
+    } catch (erro) {
+
+      next(erro);
+    }
+  }
+);
+
+
+app.put(
+  '/api/usuarios/:id',
+  exigirLogin,
+  exigirPermissao(
+    'gerenciar_usuarios'
+  ),
+  async (
+    req,
+    res,
+    next
+  ) => {
+
+    const c =
+      await pool.connect();
+
+
+    try {
+
+      await c.query(
+        'BEGIN'
+      );
+
+
+      const atual =
+        await c.query(
+          `
+          SELECT *
+          FROM usuarios
+          WHERE id=$1
+          FOR UPDATE
+          `,
+          [req.params.id]
+        );
+
+
+      if (
+        !atual.rowCount
+      ) {
+
+        await c.query(
+          'ROLLBACK'
+        );
+
+        return res
+          .status(404)
+          .json({
+            erro:
+              'Usuário não encontrado.'
+          });
+      }
+
+
+      const usuarioAtual =
+        atual.rows[0];
+
+
+      const nome =
+        req.body.nome !== undefined
+          ? String(
+              req.body.nome ||
+              ''
+            ).trim()
+          : usuarioAtual.nome;
+
+
+      const email =
+        req.body.email !== undefined
+          ? normalizarEmail(
+              req.body.email
+            )
+          : usuarioAtual.email;
+
+
+      const perfil =
+        req.body.perfil !== undefined
+          ? String(
+              req.body.perfil
+            ).toLowerCase()
+          : usuarioAtual.perfil;
+
+
+      const ativo =
+        req.body.ativo !== undefined
+          ? Boolean(
+              req.body.ativo
+            )
+          : usuarioAtual.ativo;
+
+
+      if (
+        !nome ||
+        !email
+      ) {
+
+        await c.query(
+          'ROLLBACK'
+        );
+
+        return res
+          .status(400)
+          .json({
+            erro:
+              'Nome e e-mail são obrigatórios.'
+          });
+      }
+
+
+      if (
+        !PERFIS.includes(
+          perfil
+        )
+      ) {
+
+        await c.query(
+          'ROLLBACK'
+        );
+
+        return res
+          .status(400)
+          .json({
+            erro:
+              'Perfil de usuário inválido.'
+          });
+      }
+
+
+      const duplicado =
+        await c.query(
+          `
+          SELECT id
+          FROM usuarios
+          WHERE
+            LOWER(email)=LOWER($1)
+            AND id<>$2
+          LIMIT 1
+          `,
+          [
+            email,
+            req.params.id
+          ]
+        );
+
+
+      if (
+        duplicado.rowCount
+      ) {
+
+        await c.query(
+          'ROLLBACK'
+        );
+
+        return res
+          .status(409)
+          .json({
+            erro:
+              'Já existe outro usuário com este e-mail.'
+          });
+      }
+
+
+      let senhaHash =
+        usuarioAtual.senha_hash;
+
+
+      if (
+        req.body.senha
+      ) {
+
+        const novaSenha =
+          String(
+            req.body.senha
+          );
+
+
+        if (
+          novaSenha.length < 6
+        ) {
+
+          await c.query(
+            'ROLLBACK'
+          );
+
+          return res
+            .status(400)
+            .json({
+              erro:
+                'A senha deve possuir pelo menos 6 caracteres.'
+            });
+        }
+
+
+        senhaHash =
+          hashSenha(
+            novaSenha
+          );
+      }
+
+
+      const q =
+        await c.query(
+          `
+          UPDATE usuarios
+
+          SET
+            nome=$1,
+            email=$2,
+            perfil=$3,
+            ativo=$4,
+            senha_hash=$5,
+            atualizado_em=NOW()
+
+          WHERE id=$6
+
+          RETURNING
+            id,
+            nome,
+            email,
+            perfil,
+            ativo,
+            criado_em,
+            atualizado_em
+          `,
+          [
+            nome,
+            email,
+            perfil,
+            ativo,
+            senhaHash,
+            req.params.id
+          ]
+        );
+
+
+      if (
+        !ativo
+      ) {
+
+        await c.query(
+          `
+          DELETE FROM sessoes
+          WHERE usuario_id=$1
+          `,
+          [req.params.id]
+        );
+      }
+
+
+      await c.query(
+        'COMMIT'
+      );
+
+
+      await registrarAuditoria({
+
+        usuarioId:
+          req.usuario.id,
+
+        usuarioNome:
+          req.usuario.nome,
+
+        acao:
+          'ALTERAR_USUARIO',
+
+        entidade:
+          'USUARIO',
+
+        entidadeId:
+          req.params.id,
+
+        detalhes: {
+          nome,
+          email,
+          perfil,
+          ativo
+        }
+      });
+
+
+      res.json(
+        q.rows[0]
+      );
+
+    } catch (erro) {
+
+      await c.query(
+        'ROLLBACK'
+      );
+
+      next(erro);
+
+    } finally {
+
+      c.release();
+    }
+  }
+);
+
+
+// ============================================================
+// PROTEÇÃO DAS APIs ABAIXO
+// ============================================================
+
+app.use(
+  '/api',
+  exigirLogin
+);
+
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+
+app.get(
+  '/api/dashboard',
+  async (
+    req,
+    res,
+    next
+  ) => {
+
+    try {
 
       const resumo =
         await pool.query(`
           SELECT
 
-            COUNT(*)::int cadastrados,
+            COUNT(*)::int
+              AS total,
 
-            COUNT(*) FILTER(
+            COUNT(*) FILTER (
               WHERE status='Em andamento'
-            )::int em_andamento,
+            )::int
+              AS em_andamento,
 
-            COUNT(*) FILTER(
+            COUNT(*) FILTER (
               WHERE status='Pausado'
-            )::int pausados,
+            )::int
+              AS pausados,
 
-            COUNT(*) FILTER(
+            COUNT(*) FILTER (
               WHERE status='Concluído'
-            )::int concluidos,
+            )::int
+              AS concluidos,
 
-            COUNT(*) FILTER(
-              WHERE etapa_atual='Concluído / Pedido Fechado'
-            )::int pedidos_fechados,
-
-            COUNT(*) FILTER(
-              WHERE etapa_atual='Concluído / Sem Conversão'
-            )::int sem_conversao,
-
-            COUNT(*) FILTER(
-              WHERE area_pendente='Cliente'
-              AND status NOT IN ('Concluído','Cancelado')
-            )::int aguardando_cliente,
-
-            COUNT(*) FILTER(
-              WHERE area_pendente='Produtos'
-              AND status NOT IN ('Concluído','Cancelado')
-            )::int aguardando_produtos,
-
-            COUNT(*) FILTER(
-              WHERE previsao_conclusao<CURRENT_DATE
-              AND status NOT IN ('Concluído','Cancelado')
-            )::int atrasados,
-
-            COUNT(*) FILTER(
-              WHERE prazo_proxima_acao<CURRENT_DATE
-              AND status NOT IN ('Concluído','Cancelado')
-            )::int acoes_vencidas,
-
-            COUNT(*) FILTER(
-              WHERE atualizado_em<NOW()-INTERVAL '15 days'
-              AND status NOT IN ('Concluído','Cancelado')
-            )::int sem_atualizacao,
-
-            COUNT(*) FILTER(
-              WHERE prazo_90_dias<CURRENT_DATE
-              AND status NOT IN ('Concluído','Cancelado')
-            )::int prazo90_vencido,
-
-            COUNT(*) FILTER(
-              WHERE prazo_90_dias
-                BETWEEN CURRENT_DATE
-                AND CURRENT_DATE+15
-              AND status NOT IN ('Concluído','Cancelado')
-            )::int prazo90_atencao,
-
-            COUNT(*) FILTER(
-              WHERE data_inicio >= $1::date
-                AND data_inicio < ($1::date + INTERVAL '1 month')::date
-            )::int entradas_mes,
-
-            (
-              SELECT COUNT(DISTINCT h.projeto_id)::int
-              FROM historico_etapas h
-              WHERE h.etapa IN (
-                'Concluído / Pedido Fechado',
+            COUNT(*) FILTER (
+              WHERE
+                etapa_atual=
                 'Concluído / Sem Conversão'
-              )
-                AND COALESCE(h.data_movimentacao, h.data_registro::date) >= $1::date
-                AND COALESCE(h.data_movimentacao, h.data_registro::date) < ($1::date + INTERVAL '1 month')::date
-            ) concluidos_mes,
+            )::int
+              AS sem_conversao,
 
-            (
-              SELECT COUNT(DISTINCT h.projeto_id)::int
-              FROM historico_etapas h
-              WHERE h.area_pendente='Cliente'
-                AND COALESCE(h.data_movimentacao, h.data_registro::date) >= $1::date
-                AND COALESCE(h.data_movimentacao, h.data_registro::date) < ($1::date + INTERVAL '1 month')::date
-            ) aguardando_cliente_mes,
+            COUNT(*) FILTER (
+              WHERE
+                area_pendente='Cliente'
+                AND status NOT IN (
+                  'Concluído',
+                  'Cancelado'
+                )
+            )::int
+              AS aguardando_cliente,
 
-            COALESCE(
-              ROUND(
-                AVG(data_conclusao - data_inicio)
-                FILTER(
-                  WHERE data_conclusao >= $1::date
-                    AND data_conclusao < ($1::date + INTERVAL '1 month')::date
-                ),
-                1
-              ),
-              0
-            )::float tempo_medio_mes_dias
+            COUNT(*) FILTER (
+              WHERE
+                prazo_proxima_acao<
+                  CURRENT_DATE
+                AND status NOT IN (
+                  'Concluído',
+                  'Cancelado'
+                )
+            )::int
+              AS acoes_vencidas,
+
+            COUNT(*) FILTER (
+              WHERE
+                previsao_conclusao<
+                  CURRENT_DATE
+                AND status NOT IN (
+                  'Concluído',
+                  'Cancelado'
+                )
+            )::int
+              AS atrasados,
+
+            COUNT(*) FILTER (
+              WHERE
+                atualizado_em<
+                  NOW()-INTERVAL '15 days'
+                AND status NOT IN (
+                  'Concluído',
+                  'Cancelado'
+                )
+            )::int
+              AS sem_atualizacao
 
           FROM projetos
-        `, [inicioPeriodo]);
+        `);
 
 
       const etapasQ =
@@ -1495,10 +2393,11 @@ app.get(
 
           FROM projetos
 
-          WHERE status NOT IN (
-            'Concluído',
-            'Cancelado'
-          )
+          WHERE
+            status NOT IN (
+              'Concluído',
+              'Cancelado'
+            )
 
           GROUP BY area_pendente
 
@@ -1511,7 +2410,6 @@ app.get(
       const atencao =
         await pool.query(`
           SELECT
-
             id,
             codigo,
             cliente,
@@ -1525,26 +2423,34 @@ app.get(
             prazo_90_dias,
             atualizado_em,
 
-            ${situacaoSQL('p')} situacao
+            ${situacaoSQL('p')}
+              situacao
 
           FROM projetos p
 
-          WHERE status NOT IN (
-            'Concluído',
-            'Cancelado'
-          )
+          WHERE
+            status NOT IN (
+              'Concluído',
+              'Cancelado'
+            )
 
           ORDER BY
 
             CASE
 
-              WHEN prazo_proxima_acao<CURRENT_DATE
+              WHEN
+                prazo_proxima_acao<
+                  CURRENT_DATE
                 THEN 0
 
-              WHEN previsao_conclusao<CURRENT_DATE
+              WHEN
+                previsao_conclusao<
+                  CURRENT_DATE
                 THEN 1
 
-              WHEN atualizado_em<NOW()-INTERVAL '15 days'
+              WHEN
+                atualizado_em<
+                  NOW()-INTERVAL '15 days'
                 THEN 2
 
               ELSE 3
@@ -1555,39 +2461,27 @@ app.get(
               prazo_proxima_acao,
               previsao_conclusao,
               prazo_90_dias
-            ) NULLS LAST
+            )
+            NULLS LAST
 
           LIMIT 12
         `);
 
 
-      const lembretes =
-        await pool.query(`
-          SELECT
-            id,
-            codigo,
-            cliente,
-            nome,
-            proxima_acao,
-            prazo_proxima_acao,
-            (prazo_proxima_acao - CURRENT_DATE)::int dias_para_acao
-          FROM projetos
-          WHERE status NOT IN ('Concluído','Cancelado')
-            AND prazo_proxima_acao IS NOT NULL
-            AND prazo_proxima_acao <= CURRENT_DATE + 7
-          ORDER BY prazo_proxima_acao ASC, codigo ASC
-          LIMIT 20
-        `);
-
-
       res.json({
+
         ...resumo.rows[0],
-        por_etapa: etapasQ.rows,
-        por_area: areasQ.rows,
-        atencao: atencao.rows,
-        lembretes: lembretes.rows,
-        periodo_movimento: { ano, mes }
+
+        por_etapa:
+          etapasQ.rows,
+
+        por_area:
+          areasQ.rows,
+
+        atencao:
+          atencao.rows
       });
+
 
     } catch (erro) {
 
@@ -1598,12 +2492,252 @@ app.get(
 
 
 // ============================================================
-// LISTA DE PROJETOS
+// MOVIMENTO DO MÊS
+// ============================================================
+
+app.get(
+  '/api/dashboard/movimento-mes',
+  async (
+    req,
+    res,
+    next
+  ) => {
+
+    try {
+
+      const agora =
+        new Date();
+
+
+      let ano =
+        Number(
+          req.query.ano
+        );
+
+
+      let mes =
+        Number(
+          req.query.mes
+        );
+
+
+      if (
+        !Number.isInteger(ano) ||
+        ano < 2000 ||
+        ano > 2100
+      ) {
+
+        ano =
+          agora.getFullYear();
+      }
+
+
+      if (
+        !Number.isInteger(mes) ||
+        mes < 1 ||
+        mes > 12
+      ) {
+
+        mes =
+          agora.getMonth() + 1;
+      }
+
+
+      const inicio =
+        `${ano}-${String(mes)
+          .padStart(2, '0')}-01`;
+
+
+      const proximoMes =
+        mes === 12
+          ? `${ano + 1}-01-01`
+          : `${ano}-${String(
+              mes + 1
+            ).padStart(2, '0')}-01`;
+
+
+      const cadastrados =
+        await pool.query(
+          `
+          SELECT COUNT(*)::int total
+
+          FROM projetos
+
+          WHERE
+            data_inicio >= $1::date
+            AND data_inicio < $2::date
+          `,
+          [
+            inicio,
+            proximoMes
+          ]
+        );
+
+
+      const movimentos =
+        await pool.query(
+          `
+          SELECT
+
+            COUNT(*)::int
+              AS movimentos,
+
+            COUNT(*) FILTER (
+              WHERE
+                etapa=
+                'Concluído / Pedido Fechado'
+            )::int
+              AS concluidos_convertidos,
+
+            COUNT(*) FILTER (
+              WHERE
+                etapa=
+                'Concluído / Sem Conversão'
+            )::int
+              AS concluidos_sem_conversao
+
+          FROM historico_etapas
+
+          WHERE
+            COALESCE(
+              data_movimentacao,
+              data_registro::date
+            ) >= $1::date
+
+            AND
+
+            COALESCE(
+              data_movimentacao,
+              data_registro::date
+            ) < $2::date
+          `,
+          [
+            inicio,
+            proximoMes
+          ]
+        );
+
+
+      res.json({
+
+        ano,
+
+        mes,
+
+        cadastrados:
+          cadastrados.rows[0]
+            .total,
+
+        movimentos:
+          movimentos.rows[0]
+            .movimentos,
+
+        concluidos:
+          movimentos.rows[0]
+            .concluidos_convertidos,
+
+        sem_conversao:
+          movimentos.rows[0]
+            .concluidos_sem_conversao
+      });
+
+
+    } catch (erro) {
+
+      next(erro);
+    }
+  }
+);
+
+
+// ============================================================
+// LEMBRETES DE PRÓXIMA AÇÃO
+// ============================================================
+
+app.get(
+  '/api/dashboard/lembretes',
+  async (
+    req,
+    res,
+    next
+  ) => {
+
+    try {
+
+      const q =
+        await pool.query(`
+          SELECT
+
+            id,
+            codigo,
+            cliente,
+            nome,
+            responsavel,
+            comercial_responsavel,
+            status,
+            etapa_atual,
+            area_pendente,
+            proxima_acao,
+            prazo_proxima_acao,
+
+            (
+              prazo_proxima_acao -
+              CURRENT_DATE
+            )::int
+              AS dias_para_acao
+
+          FROM projetos
+
+          WHERE
+
+            status NOT IN (
+              'Concluído',
+              'Cancelado'
+            )
+
+            AND
+
+            prazo_proxima_acao
+              IS NOT NULL
+
+            AND
+
+            prazo_proxima_acao
+              <= CURRENT_DATE +
+                INTERVAL '7 days'
+
+          ORDER BY
+
+            prazo_proxima_acao ASC,
+
+            cliente ASC
+        `);
+
+
+      res.json(
+        q.rows
+      );
+
+
+    } catch (erro) {
+
+      next(erro);
+    }
+  }
+);
+
+
+// ============================================================
+// LISTAGEM DE PROJETOS
 // ============================================================
 
 app.get(
   '/api/projetos',
-  async (req, res, next) => {
+  async (
+    req,
+    res,
+    next
+  ) => {
 
     try {
 
@@ -1617,35 +2751,47 @@ app.get(
               situacao_automatica,
 
             (
-              CURRENT_DATE
-              - p.data_inicio
-            )::int dias_em_aberto,
+              CURRENT_DATE -
+              p.data_inicio
+            )::int
+              dias_em_aberto,
 
             GREATEST(
               0,
-              CURRENT_DATE
-              - p.atualizado_em::date
-            )::int dias_sem_atualizacao,
+              (
+                CURRENT_DATE -
+                p.atualizado_em::date
+              )
+            )::int
+              dias_sem_atualizacao,
 
             CASE
 
-              WHEN p.prazo_90_dias IS NULL
+              WHEN
+                p.prazo_90_dias
+                  IS NULL
                 THEN NULL
 
-              ELSE (
-                p.prazo_90_dias
-                - CURRENT_DATE
-              )::int
+              ELSE
+                (
+                  p.prazo_90_dias -
+                  CURRENT_DATE
+                )::int
 
-            END dias_para_90
+            END
+              dias_para_90
 
           FROM projetos p
 
-          ORDER BY atualizado_em DESC
+          ORDER BY
+            atualizado_em DESC
         `);
 
 
-      res.json(q.rows);
+      res.json(
+        q.rows
+      );
+
 
     } catch (erro) {
 
@@ -1653,10 +2799,8 @@ app.get(
     }
   }
 );
-
-
 // ============================================================
-// DETALHE
+// DETALHE DO PROJETO
 // ============================================================
 
 app.get(
@@ -1711,6 +2855,10 @@ app.get(
       }
 
 
+      // ========================================================
+      // HISTÓRICO
+      // ========================================================
+
       const h =
         await pool.query(
           `
@@ -1721,13 +2869,27 @@ app.get(
             ROUND(
               (
                 COALESCE(
-                  LEAD(COALESCE(h.data_movimentacao, h.data_registro::date))
+                  LEAD(
+                    COALESCE(
+                      h.data_movimentacao,
+                      h.data_registro::date
+                    )
+                  )
                   OVER(
-                    ORDER BY COALESCE(h.data_movimentacao, h.data_registro::date), h.data_registro
+                    ORDER BY
+                      COALESCE(
+                        h.data_movimentacao,
+                        h.data_registro::date
+                      ),
+                      h.data_registro
                   ),
                   CURRENT_DATE
                 )
-                - COALESCE(h.data_movimentacao, h.data_registro::date)
+                -
+                COALESCE(
+                  h.data_movimentacao,
+                  h.data_registro::date
+                )
               )::numeric,
               1
             ) dias_na_situacao
@@ -1737,12 +2899,19 @@ app.get(
           WHERE projeto_id=$1
 
           ORDER BY
-            COALESCE(data_movimentacao, data_registro::date) DESC,
+            COALESCE(
+              data_movimentacao,
+              data_registro::date
+            ) DESC,
             data_registro DESC
           `,
           [req.params.id]
         );
 
+
+      // ========================================================
+      // TEMPO POR ETAPA
+      // ========================================================
 
       const tempos =
         await pool.query(
@@ -1752,15 +2921,33 @@ app.get(
             SELECT
 
               etapa,
+
               area_pendente,
-              COALESCE(data_movimentacao, data_registro::date) data_movimentacao,
 
               COALESCE(
-                LEAD(COALESCE(data_movimentacao, data_registro::date))
+                data_movimentacao,
+                data_registro::date
+              ) data_movimentacao,
+
+              COALESCE(
+
+                LEAD(
+                  COALESCE(
+                    data_movimentacao,
+                    data_registro::date
+                  )
+                )
                 OVER(
-                  ORDER BY COALESCE(data_movimentacao, data_registro::date), data_registro
+                  ORDER BY
+                    COALESCE(
+                      data_movimentacao,
+                      data_registro::date
+                    ),
+                    data_registro
                 ),
+
                 CURRENT_DATE
+
               ) fim
 
             FROM historico_etapas
@@ -1790,6 +2977,10 @@ app.get(
         );
 
 
+      // ========================================================
+      // TEMPO AGUARDANDO
+      // ========================================================
+
       const esperas =
         await pool.query(
           `
@@ -1798,14 +2989,31 @@ app.get(
             SELECT
 
               area_pendente,
-              COALESCE(data_movimentacao, data_registro::date) data_movimentacao,
 
               COALESCE(
-                LEAD(COALESCE(data_movimentacao, data_registro::date))
+                data_movimentacao,
+                data_registro::date
+              ) data_movimentacao,
+
+              COALESCE(
+
+                LEAD(
+                  COALESCE(
+                    data_movimentacao,
+                    data_registro::date
+                  )
+                )
                 OVER(
-                  ORDER BY COALESCE(data_movimentacao, data_registro::date), data_registro
+                  ORDER BY
+                    COALESCE(
+                      data_movimentacao,
+                      data_registro::date
+                    ),
+                    data_registro
                 ),
+
                 CURRENT_DATE
+
               ) fim
 
             FROM historico_etapas
@@ -1828,7 +3036,9 @@ app.get(
 
           WHERE
             area_pendente IS NOT NULL
-            AND area_pendente <> 'Sem pendência'
+            AND
+            area_pendente <>
+              'Sem pendência'
 
           GROUP BY
             area_pendente
@@ -1840,11 +3050,20 @@ app.get(
 
 
       res.json({
-        projeto: p.rows[0],
-        historico: h.rows,
-        tempos_etapa: tempos.rows,
-        tempos_espera: esperas.rows
+
+        projeto:
+          p.rows[0],
+
+        historico:
+          h.rows,
+
+        tempos_etapa:
+          tempos.rows,
+
+        tempos_espera:
+          esperas.rows
       });
+
 
     } catch (erro) {
 
@@ -1860,25 +3079,36 @@ app.get(
 
 app.post(
   '/api/projetos',
+
   exigirPermissao(
     'criar'
   ),
+
   async (req, res, next) => {
 
     const c =
       await pool.connect();
 
+
     try {
 
-      await c.query('BEGIN');
+      await c.query(
+        'BEGIN'
+      );
+
 
       const b =
         req.body;
 
 
-      if (!b.cliente || !b.nome) {
+      if (
+        !b.cliente ||
+        !b.nome
+      ) {
 
-        await c.query('ROLLBACK');
+        await c.query(
+          'ROLLBACK'
+        );
 
         return res
           .status(400)
@@ -1893,18 +3123,25 @@ app.post(
         b.status ||
         'Em andamento';
 
+
       let etapaFinal =
         b.etapa_atual ||
         etapas[0];
+
 
       let areaFinal =
         b.area_pendente ||
         areas[0];
 
 
+      // ========================================================
+      // CONCLUSÃO AUTOMÁTICA
+      // ========================================================
+
       if (
         etapaFinal ===
           'Concluído / Pedido Fechado' ||
+
         etapaFinal ===
           'Concluído / Sem Conversão'
       ) {
@@ -1956,7 +3193,12 @@ app.post(
           $3,
           $4,
           $5,
-          COALESCE($6::date,CURRENT_DATE),
+
+          COALESCE(
+            $6::date,
+            CURRENT_DATE
+          ),
+
           $7,
           $8,
           $9,
@@ -1966,12 +3208,17 @@ app.post(
           $13,
 
           CASE
-            WHEN $13::date IS NULL
+
+            WHEN
+              $13::date IS NULL
+
               THEN NULL
+
             ELSE (
               $13::date
               + INTERVAL '90 days'
             )::date
+
           END,
 
           $14,
@@ -1979,9 +3226,14 @@ app.post(
           $16,
 
           CASE
-            WHEN $8='Concluído'
+
+            WHEN
+              $8='Concluído'
+
               THEN CURRENT_DATE
+
             ELSE NULL
+
           END
 
         )
@@ -1998,15 +3250,19 @@ app.post(
 
         b.cliente,
 
-        b.segmento || null,
+        b.segmento ||
+          null,
 
         b.nome,
 
-        b.responsavel || 'Erika',
+        b.responsavel ||
+          'Erika',
 
-        b.data_inicio || null,
+        b.data_inicio ||
+          null,
 
-        b.previsao_conclusao || null,
+        b.previsao_conclusao ||
+          null,
 
         statusFinal,
 
@@ -2014,17 +3270,23 @@ app.post(
 
         areaFinal,
 
-        b.proxima_acao || null,
+        b.proxima_acao ||
+          null,
 
-        b.prazo_proxima_acao || null,
+        b.prazo_proxima_acao ||
+          null,
 
-        b.data_aprovacao || null,
+        b.data_aprovacao ||
+          null,
 
-        b.observacoes || null,
+        b.observacoes ||
+          null,
 
-        b.origem_cliente || null,
+        b.origem_cliente ||
+          null,
 
-        b.comercial_responsavel || null
+        b.comercial_responsavel ||
+          null
       ];
 
 
@@ -2034,6 +3296,10 @@ app.post(
           valores
         );
 
+
+      // ========================================================
+      // HISTÓRICO INICIAL
+      // ========================================================
 
       await c.query(
         `
@@ -2052,6 +3318,7 @@ app.post(
         )
 
         VALUES (
+
           $1,
           $2,
           $3,
@@ -2060,17 +3327,29 @@ app.post(
           'Cadastro inicial',
           $5,
           $6,
-          COALESCE($7::date, CURRENT_DATE)
+
+          COALESCE(
+            $7::date,
+            CURRENT_DATE
+          )
         )
         `,
         [
+
           p.rows[0].id,
+
           p.rows[0].etapa_atual,
+
           p.rows[0].area_pendente,
+
           p.rows[0].proxima_acao,
+
           req.usuario.id,
+
           req.usuario.nome,
-          b.data_inicio || null
+
+          b.data_inicio ||
+            null
         ]
       );
 
@@ -2082,14 +3361,22 @@ app.post(
         'projeto',
         p.rows[0].id,
         {
-          codigo: p.rows[0].codigo,
-          cliente: p.rows[0].cliente,
-          nome: p.rows[0].nome
+
+          codigo:
+            p.rows[0].codigo,
+
+          cliente:
+            p.rows[0].cliente,
+
+          nome:
+            p.rows[0].nome
         }
       );
 
 
-      await c.query('COMMIT');
+      await c.query(
+        'COMMIT'
+      );
 
 
       res
@@ -2098,6 +3385,7 @@ app.post(
           p.rows[0]
         );
 
+
     } catch (erro) {
 
       await c.query(
@@ -2105,6 +3393,7 @@ app.post(
       );
 
       next(erro);
+
 
     } finally {
 
@@ -2120,18 +3409,27 @@ app.post(
 
 app.put(
   '/api/projetos/:id',
+
   exigirPermissao(
     'editar'
   ),
+
   async (req, res, next) => {
 
     const c =
       await pool.connect();
 
+
     try {
 
-      await c.query('BEGIN');
+      await c.query(
+        'BEGIN'
+      );
 
+
+      // ========================================================
+      // PROJETO ATUAL
+      // ========================================================
 
       const old =
         await c.query(
@@ -2144,7 +3442,9 @@ app.put(
         );
 
 
-      if (!old.rowCount) {
+      if (
+        !old.rowCount
+      ) {
 
         await c.query(
           'ROLLBACK'
@@ -2162,9 +3462,14 @@ app.put(
       const o =
         old.rows[0];
 
+
       const b =
         req.body;
 
+
+      // ========================================================
+      // NOVOS VALORES
+      // ========================================================
 
       const v = {
 
@@ -2263,11 +3568,14 @@ app.put(
       };
 
 
-      // Conclusão automática pelo tipo de etapa.
+      // ========================================================
+      // CONCLUSÃO AUTOMÁTICA PELA ETAPA
+      // ========================================================
 
       if (
         v.etapa ===
           'Concluído / Pedido Fechado' ||
+
         v.etapa ===
           'Concluído / Sem Conversão'
       ) {
@@ -2280,13 +3588,21 @@ app.put(
       }
 
 
+      // ========================================================
+      // DATA DE CONCLUSÃO
+      // ========================================================
+
       let conclusao =
         o.data_conclusao;
 
 
       if (
-        v.status === 'Concluído' &&
-        o.status !== 'Concluído' &&
+        v.status ===
+          'Concluído' &&
+
+        o.status !==
+          'Concluído' &&
+
         !conclusao
       ) {
 
@@ -2297,14 +3613,21 @@ app.put(
 
 
       if (
-        v.status !== 'Concluído' &&
-        o.status === 'Concluído'
+        v.status !==
+          'Concluído' &&
+
+        o.status ===
+          'Concluído'
       ) {
 
         conclusao =
           null;
       }
 
+
+      // ========================================================
+      // ATUALIZA PROJETO
+      // ========================================================
 
       const q =
         await c.query(
@@ -2327,13 +3650,19 @@ app.put(
             data_aprovacao=$12,
 
             prazo_90_dias=
+
               CASE
-                WHEN $12::date IS NULL
+
+                WHEN
+                  $12::date IS NULL
+
                   THEN NULL
+
                 ELSE (
                   $12::date
                   + INTERVAL '90 days'
                 )::date
+
               END,
 
             data_conclusao=$13,
@@ -2346,54 +3675,88 @@ app.put(
           RETURNING *
           `,
           [
+
             v.cliente,
+
             v.segmento,
+
             v.nome,
+
             v.responsavel,
+
             v.previsao,
+
             v.status,
+
             v.etapa,
+
             v.area,
+
             v.acao,
+
             v.prazoAcao,
+
             v.obs,
+
             v.aprovacao,
+
             conclusao,
+
             v.origem,
+
             v.comercial,
+
             req.params.id
           ]
         );
 
 
+      // ========================================================
+      // IDENTIFICA MOVIMENTAÇÃO
+      // ========================================================
+
       const mudou =
 
-        o.status !== v.status ||
+        o.status !==
+          v.status ||
 
-        o.etapa_atual !== v.etapa ||
+        o.etapa_atual !==
+          v.etapa ||
 
-        o.area_pendente !== v.area ||
+        o.area_pendente !==
+          v.area ||
 
-        o.proxima_acao !== v.acao ||
+        o.proxima_acao !==
+          v.acao ||
 
         String(
-          o.prazo_proxima_acao || ''
+          o.prazo_proxima_acao ||
+          ''
         ) !==
         String(
-          v.prazoAcao || ''
+          v.prazoAcao ||
+          ''
         ) ||
 
         Boolean(
           String(
-            b.movimentacao_observacao || ''
+            b.movimentacao_observacao ||
+            ''
           ).trim()
         );
 
 
-      const detalhes = [];
+      const detalhes =
+        [];
 
 
-      if (mudou) {
+      // ========================================================
+      // HISTÓRICO DA MOVIMENTAÇÃO
+      // ========================================================
+
+      if (
+        mudou
+      ) {
 
 
         if (
@@ -2442,10 +3805,12 @@ app.put(
 
         if (
           String(
-            o.prazo_proxima_acao || ''
+            o.prazo_proxima_acao ||
+            ''
           ) !==
           String(
-            v.prazoAcao || ''
+            v.prazoAcao ||
+            ''
           )
         ) {
 
@@ -2472,6 +3837,7 @@ app.put(
           )
 
           VALUES (
+
             $1,
             $2,
             $3,
@@ -2480,59 +3846,313 @@ app.put(
             $6,
             $7,
             $8,
-            COALESCE($9::date, CURRENT_DATE)
+
+            COALESCE(
+              $9::date,
+              CURRENT_DATE
+            )
           )
           `,
           [
+
             req.params.id,
+
             v.etapa,
+
             v.area,
+
             v.status,
+
             v.acao,
 
             b.movimentacao_observacao ||
-            detalhes.join(' | ') ||
-            'Atualização do projeto',
+              detalhes.join(' | ') ||
+              'Atualização do projeto',
+
             req.usuario.id,
+
             req.usuario.nome,
-            b.data_movimentacao || null
+
+            b.data_movimentacao ||
+              null
           ]
         );
       }
 
+
+      // ========================================================
+      // AUDITORIA
+      // ========================================================
 
       await registrarAuditoria(
         c,
         req,
         'ATUALIZAR_PROJETO',
         'projeto',
-        Number(req.params.id),
+        Number(
+          req.params.id
+        ),
         {
-          codigo: o.codigo,
+
+          codigo:
+            o.codigo,
+
           alteracoes:
             detalhes.length
               ? detalhes
-              : ['Dados gerais atualizados']
+              : [
+                  'Dados gerais atualizados'
+                ]
         }
       );
 
+
+      // ========================================================
+      // PREPARA DESTINATÁRIOS ANTES DO COMMIT
+      // ========================================================
+
+      const desejaNotificar =
+        Boolean(
+          b.notificar_responsaveis
+        );
+
+
+      let dadosDestinatarios =
+        null;
+
+
+      if (
+        desejaNotificar
+      ) {
+
+        dadosDestinatarios =
+          await resolverDestinatariosNotificacao(
+            c,
+            q.rows[0],
+            b
+          );
+      }
+
+
+      // ========================================================
+      // SALVA PRIMEIRO
+      // ========================================================
 
       await c.query(
         'COMMIT'
       );
 
 
-      res.json(
-        q.rows[0]
-      );
+      // ========================================================
+      // NOTIFICAÇÃO
+      // ========================================================
+
+      let notificacao =
+        null;
+
+
+      if (
+        desejaNotificar
+      ) {
+
+        try {
+
+          const retornoEnvio =
+            await enviarNotificacaoProjeto({
+
+              projeto:
+                q.rows[0],
+
+              body:
+                b,
+
+              destinatarios:
+                dadosDestinatarios.emails,
+
+              usuarioNome:
+                req.usuario.nome
+            });
+
+
+          notificacao = {
+
+            enviada:
+              true,
+
+            destinatarios:
+              dadosDestinatarios.emails,
+
+            aviso:
+              dadosDestinatarios
+                .nomesNaoEncontrados
+                .length
+
+                ? `Sem e-mail cadastrado para: ${
+                    dadosDestinatarios
+                      .nomesNaoEncontrados
+                      .join(', ')
+                  }`
+
+                : null,
+
+            id:
+              retornoEnvio.id ||
+              null
+          };
+
+
+          // ====================================================
+          // REGISTRA A NOTIFICAÇÃO NO HISTÓRICO
+          // ====================================================
+
+          await pool.query(
+            `
+            INSERT INTO historico_etapas (
+
+              projeto_id,
+              etapa,
+              area_pendente,
+              situacao,
+              pendencia_proximo_passo,
+              observacoes,
+              usuario_id,
+              usuario_nome,
+              data_movimentacao
+
+            )
+
+            VALUES (
+
+              $1,
+              $2,
+              $3,
+              $4,
+              $5,
+              $6,
+              $7,
+              $8,
+
+              COALESCE(
+                $9::date,
+                CURRENT_DATE
+              )
+            )
+            `,
+            [
+
+              req.params.id,
+
+              q.rows[0]
+                .etapa_atual,
+
+              q.rows[0]
+                .area_pendente,
+
+              'Notificação enviada',
+
+              q.rows[0]
+                .proxima_acao,
+
+              `Motivo: ${
+                b.notificacao_motivo ||
+                'Atualização do projeto'
+              } | Destinatários: ${
+                dadosDestinatarios
+                  .emails
+                  .join(', ')
+              }`,
+
+              req.usuario.id,
+
+              req.usuario.nome,
+
+              b.data_movimentacao ||
+                null
+            ]
+          );
+
+
+          await registrarAuditoria(
+            pool,
+            req,
+            'ENVIAR_NOTIFICACAO',
+            'projeto',
+            Number(
+              req.params.id
+            ),
+            {
+
+              motivo:
+                b.notificacao_motivo ||
+                'Atualização do projeto',
+
+              destinatarios:
+                dadosDestinatarios
+                  .emails
+            }
+          );
+
+
+        } catch (
+          erroNotificacao
+        ) {
+
+          console.error(
+            'Erro ao enviar notificação:',
+            erroNotificacao
+          );
+
+
+          // O projeto JÁ FOI SALVO.
+          // Falha de e-mail não desfaz a movimentação.
+
+          notificacao = {
+
+            enviada:
+              false,
+
+            erro:
+              erroNotificacao.message,
+
+            destinatarios:
+              dadosDestinatarios
+                ?.emails ||
+              []
+          };
+        }
+      }
+
+
+      // ========================================================
+      // RESPOSTA
+      // ========================================================
+
+      res.json({
+
+        ...q.rows[0],
+
+        notificacao
+      });
+
 
     } catch (erro) {
 
-      await c.query(
-        'ROLLBACK'
-      );
+      // Se o COMMIT ainda não ocorreu,
+      // desfaz a transação.
+
+      try {
+
+        await c.query(
+          'ROLLBACK'
+        );
+
+      } catch {
+        // ignora rollback após commit
+      }
+
 
       next(erro);
+
 
     } finally {
 
@@ -2540,13 +4160,11 @@ app.put(
     }
   }
 );
-
-
 // ============================================================
 // XLSX SELECIONADO
 // ============================================================
 
-app.get(
+  app.get(
   '/api/relatorios/projetos.xlsx',
   exigirPermissao(
     'exportar'
@@ -2782,7 +4400,9 @@ app.get(
         new Date();
 
 
+      // ========================================================
       // RESUMO
+      // ========================================================
 
       const resumo =
         wb.addWorksheet(
@@ -2878,7 +4498,9 @@ app.get(
       autoWidth(resumo);
 
 
+      // ========================================================
       // PROJETOS
+      // ========================================================
 
       const ws =
         wb.addWorksheet(
@@ -2888,61 +4510,129 @@ app.get(
 
       ws.columns = [
 
-        ['ID', 'codigo'],
-        ['Cliente', 'cliente'],
-        ['Segmento', 'segmento'],
-        ['Projeto', 'nome'],
-        ['Origem', 'origem_cliente'],
-        ['Comercial', 'comercial_responsavel'],
-        ['Responsável', 'responsavel'],
-        ['Início', 'data_inicio'],
-        ['Previsão', 'previsao_conclusao'],
-        ['Status', 'status'],
-        ['Situação automática', 'situacao_automatica'],
-        ['Etapa', 'etapa_atual'],
-        ['Aguardando', 'area_pendente'],
-        ['Próxima ação', 'proxima_acao'],
-        ['Prazo ação', 'prazo_proxima_acao'],
-        ['Aprovação', 'data_aprovacao'],
-        ['Prazo 90 dias', 'prazo_90_dias'],
-        ['Conclusão', 'data_conclusao'],
-        ['Tempo total (dias)', 'tempo_total_dias'],
-        ['Observações', 'observacoes']
+        {
+          header: 'ID',
+          key: 'codigo'
+        },
 
-      ].map(
-        ([header, key]) => ({
-          header,
-          key
-        })
-      );
+        {
+          header: 'Cliente',
+          key: 'cliente'
+        },
 
+        {
+          header: 'Segmento',
+          key: 'segmento'
+        },
 
-      projetos.forEach(
-        p =>
-          ws.addRow(p)
-      );
+        {
+          header: 'Projeto',
+          key: 'nome'
+        },
+
+        {
+          header: 'Origem',
+          key: 'origem_cliente'
+        },
+
+        {
+          header: 'Comercial',
+          key: 'comercial_responsavel'
+        },
+
+        {
+          header: 'Responsável',
+          key: 'responsavel'
+        },
+
+        {
+          header: 'Início',
+          key: 'data_inicio'
+        },
+
+        {
+          header: 'Previsão',
+          key: 'previsao_conclusao'
+        },
+
+        {
+          header: 'Status',
+          key: 'status'
+        },
+
+        {
+          header: 'Situação automática',
+          key: 'situacao_automatica'
+        },
+
+        {
+          header: 'Etapa',
+          key: 'etapa_atual'
+        },
+
+        {
+          header: 'Aguardando',
+          key: 'area_pendente'
+        },
+
+        {
+          header: 'Próxima ação',
+          key: 'proxima_acao'
+        },
+
+        {
+          header: 'Prazo ação',
+          key: 'prazo_proxima_acao'
+        },
+
+        {
+          header: 'Aprovação',
+          key: 'data_aprovacao'
+        },
+
+        {
+          header: 'Prazo 90 dias',
+          key: 'prazo_90_dias'
+        },
+
+        {
+          header: 'Conclusão',
+          key: 'data_conclusao'
+        },
+
+        {
+          header: 'Tempo total (dias)',
+          key: 'tempo_total_dias'
+        },
+
+        {
+          header: 'Observações',
+          key: 'observacoes'
+        }
+      ];
 
 
       styleHeader(
         ws.getRow(1)
       );
 
-      ws.autoFilter = {
-        from: 'A1',
-        to: 'T1'
-      };
 
-      ws.views = [
-        {
-          state: 'frozen',
-          ySplit: 1
+      projetos.forEach(
+        projeto => {
+
+          ws.addRow(
+            projeto
+          );
         }
-      ];
+      );
+
 
       autoWidth(ws);
 
 
+      // ========================================================
       // HISTÓRICO
+      // ========================================================
 
       const wh =
         wb.addWorksheet(
@@ -2952,50 +4642,74 @@ app.get(
 
       wh.columns = [
 
-        ['ID', 'codigo'],
-        ['Cliente', 'cliente'],
-        ['Projeto', 'projeto'],
-        ['Data/Hora', 'data_registro'],
-        ['Etapa', 'etapa'],
-        ['Aguardando', 'area_pendente'],
-        ['Situação', 'situacao'],
-        ['Próximo passo', 'pendencia_proximo_passo'],
-        ['Observações', 'observacoes']
+        {
+          header: 'ID',
+          key: 'codigo'
+        },
 
-      ].map(
-        ([header, key]) => ({
-          header,
-          key
-        })
-      );
+        {
+          header: 'Cliente',
+          key: 'cliente'
+        },
 
+        {
+          header: 'Projeto',
+          key: 'projeto'
+        },
 
-      hist.forEach(
-        item =>
-          wh.addRow(item)
-      );
+        {
+          header: 'Data',
+          key: 'data_registro'
+        },
+
+        {
+          header: 'Etapa',
+          key: 'etapa'
+        },
+
+        {
+          header: 'Aguardando',
+          key: 'area_pendente'
+        },
+
+        {
+          header: 'Situação',
+          key: 'situacao'
+        },
+
+        {
+          header: 'Próximo passo',
+          key: 'pendencia_proximo_passo'
+        },
+
+        {
+          header: 'Observações',
+          key: 'observacoes'
+        }
+      ];
 
 
       styleHeader(
         wh.getRow(1)
       );
 
-      wh.autoFilter = {
-        from: 'A1',
-        to: 'I1'
-      };
 
-      wh.views = [
-        {
-          state: 'frozen',
-          ySplit: 1
+      hist.forEach(
+        item => {
+
+          wh.addRow(
+            item
+          );
         }
-      ];
+      );
+
 
       autoWidth(wh);
 
 
+      // ========================================================
       // TEMPOS
+      // ========================================================
 
       const wt =
         wb.addWorksheet(
@@ -3005,49 +4719,54 @@ app.get(
 
       wt.columns = [
 
-        ['ID', 'codigo'],
-        ['Cliente', 'cliente'],
-        ['Etapa', 'etapa'],
-        ['Aguardando', 'area_pendente'],
-        ['Dias', 'dias']
+        {
+          header: 'ID',
+          key: 'codigo'
+        },
 
-      ].map(
-        ([header, key]) => ({
-          header,
-          key
-        })
-      );
+        {
+          header: 'Cliente',
+          key: 'cliente'
+        },
 
+        {
+          header: 'Etapa',
+          key: 'etapa'
+        },
 
-      tempos.forEach(
-        item =>
-          wt.addRow(item)
-      );
+        {
+          header: 'Aguardando',
+          key: 'area_pendente'
+        },
+
+        {
+          header: 'Dias',
+          key: 'dias'
+        }
+      ];
 
 
       styleHeader(
         wt.getRow(1)
       );
 
-      wt.autoFilter = {
-        from: 'A1',
-        to: 'E1'
-      };
+
+      tempos.forEach(
+        item => {
+
+          wt.addRow(
+            item
+          );
+        }
+      );
+
 
       autoWidth(wt);
 
 
-      const prefixo =
-        projetos.length === 1
-          ? projetos[0].codigo
-          : `${projetos.length}_Projetos`;
-
-
-      const nome =
-        `Relatorio_LENVIE_${prefixo}_${new Date()
-          .toISOString()
-          .slice(0,10)}.xlsx`;
-
+      // ========================================================
+      // ENVIO DO XLSX
+      // ========================================================
 
       res.setHeader(
         'Content-Type',
@@ -3057,13 +4776,17 @@ app.get(
 
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename="${nome}"`
+        'attachment; filename="relatorio-projetos-lenvie.xlsx"'
       );
 
 
-      await wb.xlsx.write(res);
+      await wb.xlsx.write(
+        res
+      );
+
 
       res.end();
+
 
     } catch (erro) {
 
@@ -3097,7 +4820,7 @@ app.get(
         return res
           .status(400)
           .send(
-            'Selecione pelo menos um projeto.'
+            'Selecione pelo menos um projeto para gerar o relatório.'
           );
       }
 
@@ -3127,21 +4850,40 @@ app.get(
               ANY($1::int[])
 
             ORDER BY
-              codigo
+              criado_em DESC
             `,
             [ids]
           )
         ).rows;
 
 
-      const historico =
+      if (!projetos.length) {
+
+        return res
+          .status(404)
+          .send(
+            'Nenhum projeto encontrado.'
+          );
+      }
+
+
+      const hist =
         (
           await pool.query(
             `
             SELECT
 
-              h.*,
-              p.codigo
+              p.id projeto_id,
+              p.codigo,
+              p.cliente,
+              p.nome projeto,
+
+              h.data_registro,
+              h.etapa,
+              h.area_pendente,
+              h.situacao,
+              h.pendencia_proximo_passo,
+              h.observacoes
 
             FROM historico_etapas h
 
@@ -3160,463 +4902,452 @@ app.get(
         ).rows;
 
 
-      if (!projetos.length) {
-
-        return res
-          .status(404)
-          .send(
-            'Nenhum projeto encontrado.'
-          );
-      }
+      const total =
+        projetos.length;
 
 
-      const projetosHtml =
+      const andamento =
+        projetos.filter(
+          p =>
+            p.status ===
+            'Em andamento'
+        ).length;
+
+
+      const pausados =
+        projetos.filter(
+          p =>
+            p.status ===
+            'Pausado'
+        ).length;
+
+
+      const concluidos =
+        projetos.filter(
+          p =>
+            p.status ===
+            'Concluído'
+        ).length;
+
+
+      const pedidosFechados =
+        projetos.filter(
+          p =>
+            p.etapa_atual ===
+            'Concluído / Pedido Fechado'
+        ).length;
+
+
+      const semConversao =
+        projetos.filter(
+          p =>
+            p.etapa_atual ===
+            'Concluído / Sem Conversão'
+        ).length;
+
+
+      const encerrados =
+        pedidosFechados +
+        semConversao;
+
+
+      const conversao =
+        encerrados
+          ? (
+              pedidosFechados /
+              encerrados *
+              100
+            ).toFixed(1)
+          : '0.0';
+
+
+      const linhasProjetos =
         projetos
-          .map(projeto => {
+          .map(
+            p => `
+              <tr>
 
-            const hist =
-              historico.filter(
-                h =>
-                  h.projeto_id ===
-                  projeto.id
-              );
+                <td>
+                  ${escapeHtml(p.codigo)}
+                </td>
 
+                <td>
+                  ${escapeHtml(p.cliente)}
+                </td>
 
-            const historicoHtml =
-              hist.length
-                ? hist
-                    .map(item => `
-                      <div class="hist">
-                        <strong>
-                          ${escapeHtml(
-                            dataHoraBR(
-                              item.data_registro
-                            )
-                          )}
-                        </strong>
+                <td>
+                  ${escapeHtml(p.nome)}
+                </td>
 
-                        <div>
-                          ${escapeHtml(
-                            item.situacao ||
-                            ''
-                          )}
-                          ·
-                          ${escapeHtml(
-                            item.etapa ||
-                            ''
-                          )}
-                        </div>
+                <td>
+                  ${escapeHtml(p.status)}
+                </td>
 
-                        <div class="muted">
-                          Aguardando:
-                          ${escapeHtml(
-                            item.area_pendente ||
-                            '—'
-                          )}
-                        </div>
+                <td>
+                  ${escapeHtml(p.etapa_atual)}
+                </td>
 
-                        ${
-                          item.pendencia_proximo_passo
-                            ? `
-                              <div>
-                                ${escapeHtml(
-                                  item.pendencia_proximo_passo
-                                )}
-                              </div>
-                            `
-                            : ''
-                        }
+                <td>
+                  ${escapeHtml(p.area_pendente)}
+                </td>
 
-                        ${
-                          item.observacoes
-                            ? `
-                              <small>
-                                ${escapeHtml(
-                                  item.observacoes
-                                )}
-                              </small>
-                            `
-                            : ''
-                        }
-                      </div>
-                    `)
-                    .join('')
-                : '<p>Sem histórico.</p>';
+                <td>
+                  ${escapeHtml(
+                    p.situacao_automatica
+                  )}
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    p.tempo_total_dias
+                  )}
+                </td>
+
+              </tr>
+            `
+          )
+          .join('');
 
 
-            return `
-              <section class="projeto">
+      const blocosHistorico =
+        projetos
+          .map(
+            projeto => {
 
-                <div class="titulo-projeto">
+              const movimentos =
+                hist.filter(
+                  item =>
+                    Number(
+                      item.projeto_id
+                    ) ===
+                    Number(
+                      projeto.id
+                    )
+                );
 
-                  <div>
 
-                    <h1>
+              const linhas =
+                movimentos.length
+
+                  ? movimentos
+                      .map(
+                        h => `
+                          <tr>
+
+                            <td>
+                              ${escapeHtml(
+                                fmtDataHora(
+                                  h.data_registro
+                                )
+                              )}
+                            </td>
+
+                            <td>
+                              ${escapeHtml(
+                                h.etapa
+                              )}
+                            </td>
+
+                            <td>
+                              ${escapeHtml(
+                                h.area_pendente
+                              )}
+                            </td>
+
+                            <td>
+                              ${escapeHtml(
+                                h.situacao
+                              )}
+                            </td>
+
+                            <td>
+                              ${escapeHtml(
+                                h.pendencia_proximo_passo
+                              )}
+                            </td>
+
+                            <td>
+                              ${escapeHtml(
+                                h.observacoes
+                              )}
+                            </td>
+
+                          </tr>
+                        `
+                      )
+                      .join('')
+
+                  : `
+                      <tr>
+                        <td
+                          colspan="6"
+                        >
+                          Sem histórico.
+                        </td>
+                      </tr>
+                    `;
+
+
+              return `
+                <section
+                  class="project-block"
+                >
+
+                  <h2>
+                    ${escapeHtml(
+                      projeto.codigo
+                    )}
+                    ·
+                    ${escapeHtml(
+                      projeto.cliente
+                    )}
+                    —
+                    ${escapeHtml(
+                      projeto.nome
+                    )}
+                  </h2>
+
+                  <div
+                    class="project-meta"
+                  >
+
+                    <span>
+                      <strong>Status:</strong>
                       ${escapeHtml(
-                        projeto.codigo
+                        projeto.status
                       )}
-                      ·
-                      ${escapeHtml(
-                        projeto.nome
-                      )}
-                    </h1>
+                    </span>
 
-                    <span class="situacao">
+                    <span>
+                      <strong>Etapa:</strong>
                       ${escapeHtml(
-                        projeto.situacao_automatica
+                        projeto.etapa_atual
+                      )}
+                    </span>
+
+                    <span>
+                      <strong>Aguardando:</strong>
+                      ${escapeHtml(
+                        projeto.area_pendente
                       )}
                     </span>
 
                   </div>
 
-                  <div class="cliente">
-                    ${escapeHtml(
-                      projeto.cliente
-                    )}
-                  </div>
+                  <table>
 
-                </div>
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Etapa</th>
+                        <th>Aguardando</th>
+                        <th>Situação</th>
+                        <th>Próximo passo</th>
+                        <th>Observações</th>
+                      </tr>
+                    </thead>
 
+                    <tbody>
+                      ${linhas}
+                    </tbody>
 
-                <div class="grid">
+                  </table>
 
-                  <div>
-                    <label>Cliente</label>
-                    <p>
-                      ${escapeHtml(
-                        projeto.cliente
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Segmento</label>
-                    <p>
-                      ${escapeHtml(
-                        projeto.segmento ||
-                        '—'
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Responsável</label>
-                    <p>
-                      ${escapeHtml(
-                        projeto.responsavel ||
-                        '—'
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Comercial</label>
-                    <p>
-                      ${escapeHtml(
-                        projeto.comercial_responsavel ||
-                        '—'
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Status</label>
-                    <p>
-                      ${escapeHtml(
-                        projeto.status
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Etapa</label>
-                    <p>
-                      ${escapeHtml(
-                        projeto.etapa_atual
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Aguardando</label>
-                    <p>
-                      ${escapeHtml(
-                        projeto.area_pendente
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Tempo total</label>
-                    <p>
-                      ${escapeHtml(
-                        projeto.tempo_total_dias
-                      )}
-                      dias
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Data de início</label>
-                    <p>
-                      ${dataBR(
-                        projeto.data_inicio
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Previsão</label>
-                    <p>
-                      ${dataBR(
-                        projeto.previsao_conclusao
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Data de aprovação</label>
-                    <p>
-                      ${dataBR(
-                        projeto.data_aprovacao
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Prazo 90 dias</label>
-                    <p>
-                      ${dataBR(
-                        projeto.prazo_90_dias
-                      )}
-                    </p>
-                  </div>
-
-                </div>
-
-
-                <div class="bloco">
-
-                  <label>
-                    Próxima ação
-                  </label>
-
-                  <p>
-                    ${escapeHtml(
-                      projeto.proxima_acao ||
-                      '—'
-                    )}
-                  </p>
-
-                </div>
-
-
-                <div class="bloco">
-
-                  <label>
-                    Observações
-                  </label>
-
-                  <p>
-                    ${escapeHtml(
-                      projeto.observacoes ||
-                      '—'
-                    )}
-                  </p>
-
-                </div>
-
-
-                <h2>
-                  Histórico
-                </h2>
-
-                ${historicoHtml}
-
-              </section>
-            `;
-          })
+                </section>
+              `;
+            }
+          )
           .join('');
 
 
-      res.type('html').send(`
-        <!doctype html>
+      const html = `
+        <!DOCTYPE html>
 
         <html lang="pt-BR">
 
         <head>
 
-          <meta charset="utf-8">
+          <meta charset="UTF-8">
 
           <meta
             name="viewport"
-            content="width=device-width,initial-scale=1"
+            content="width=device-width, initial-scale=1.0"
           >
 
           <title>
-            Relatório LENVIE
+            Relatório de Projetos - LENVIE
           </title>
 
           <style>
 
             * {
-              box-sizing: border-box;
+              box-sizing:
+                border-box;
             }
 
             body {
-              margin: 0;
+              margin:
+                0;
+              padding:
+                28px;
               font-family:
                 Arial,
+                Helvetica,
                 sans-serif;
-              color: #1d281d;
-              background: #f3f5f0;
-            }
-
-            .topo {
-              height: 110px;
+              color:
+                #252525;
               background:
-                #a9b79e
-                url('/img/lenvie-topo.png')
-                center / cover
-                no-repeat;
-            }
-
-            main {
-              max-width: 1000px;
-              margin: 25px auto;
-              padding: 0 20px;
-            }
-
-            .acoes {
-              display: flex;
-              justify-content: flex-end;
-              margin-bottom: 15px;
-            }
-
-            button {
-              border: 0;
-              background: #66745c;
-              color: white;
-              padding: 11px 18px;
-              border-radius: 8px;
-              cursor: pointer;
-            }
-
-            .projeto {
-              background: white;
-              padding: 28px;
-              border-radius: 14px;
-              margin-bottom: 25px;
-              box-shadow:
-                0 5px 20px
-                rgba(0,0,0,.08);
-              page-break-after: always;
-            }
-
-            .projeto:last-child {
-              page-break-after: auto;
-            }
-
-            .titulo-projeto {
-              display: flex;
-              justify-content: space-between;
-              gap: 20px;
-              border-bottom:
-                2px solid #dce2d8;
-              padding-bottom: 15px;
-              margin-bottom: 20px;
+                #ffffff;
             }
 
             h1 {
-              margin: 0 0 8px;
-              font-size: 24px;
+              margin:
+                0 0 5px;
+              color:
+                #354133;
+              font-size:
+                25px;
             }
 
             h2 {
-              margin-top: 25px;
-              font-size: 18px;
+              color:
+                #354133;
+              margin-top:
+                26px;
+              font-size:
+                18px;
             }
 
-            .cliente {
-              font-weight: bold;
-              color: #66745c;
+            .sub {
+              margin-bottom:
+                22px;
+              color:
+                #666;
+              font-size:
+                12px;
             }
 
-            .situacao {
-              display: inline-block;
-              background: #f6e7a9;
-              padding: 5px 9px;
-              border-radius: 999px;
-              font-size: 12px;
-              font-weight: bold;
-            }
-
-            .grid {
-              display: grid;
+            .cards {
+              display:
+                grid;
               grid-template-columns:
-                repeat(2,1fr);
-              gap: 12px;
+                repeat(6, 1fr);
+              gap:
+                8px;
+              margin:
+                18px 0 24px;
             }
 
-            .grid div,
-            .bloco {
-              border: 1px solid #dfe5dc;
-              border-radius: 8px;
-              padding: 10px;
+            .card {
+              border:
+                1px solid #d8ddd4;
+              border-radius:
+                8px;
+              padding:
+                10px;
+              background:
+                #f8f9f7;
             }
 
-            label {
-              display: block;
-              font-size: 11px;
-              font-weight: bold;
-              color: #66745c;
-              text-transform: uppercase;
+            .card strong {
+              display:
+                block;
+              font-size:
+                20px;
+              color:
+                #354133;
+              margin-top:
+                5px;
             }
 
-            p {
-              margin: 5px 0 0;
-              white-space: pre-wrap;
+            table {
+              width:
+                100%;
+              border-collapse:
+                collapse;
+              margin:
+                10px 0 20px;
+              font-size:
+                11px;
             }
 
-            .bloco {
-              margin-top: 12px;
+            th {
+              background:
+                #354133;
+              color:
+                white;
+              text-align:
+                left;
+              padding:
+                7px;
             }
 
-            .hist {
-              border-left:
-                3px solid #829278;
-              padding: 8px 12px;
-              margin: 12px 0;
+            td {
+              border-bottom:
+                1px solid #e1e4df;
+              padding:
+                7px;
+              vertical-align:
+                top;
             }
 
-            .muted,
-            small {
-              color: #687467;
+            .project-block {
+              page-break-inside:
+                avoid;
+              margin-top:
+                25px;
+            }
+
+            .project-meta {
+              display:
+                flex;
+              flex-wrap:
+                wrap;
+              gap:
+                14px;
+              font-size:
+                12px;
+              margin-bottom:
+                8px;
+            }
+
+            .toolbar {
+              margin-bottom:
+                20px;
+            }
+
+            button {
+              background:
+                #354133;
+              color:
+                #fff;
+              border:
+                0;
+              padding:
+                10px 15px;
+              border-radius:
+                6px;
+              cursor:
+                pointer;
             }
 
             @media print {
 
+              .toolbar {
+                display:
+                  none;
+              }
+
               body {
-                background: white;
+                padding:
+                  0;
               }
 
-              .acoes {
-                display: none;
-              }
-
-              main {
-                max-width: none;
-                margin: 0;
-                padding: 0;
-              }
-
-              .topo {
-                height: 80px;
-              }
-
-              .projeto {
-                box-shadow: none;
-                border-radius: 0;
+              @page {
+                size:
+                  landscape;
+                margin:
+                  10mm;
               }
             }
 
@@ -3626,38 +5357,152 @@ app.get(
 
         <body>
 
-          <div class="topo"></div>
+          <div class="toolbar">
 
-          <main>
+            <button
+              onclick="window.print()"
+            >
+              Imprimir / Salvar em PDF
+            </button>
 
-            <div class="acoes">
-              <button
-                onclick="window.print()"
-              >
-                Salvar / Imprimir PDF
-              </button>
+          </div>
+
+
+          <h1>
+            Relatório de Projetos — LENVIE
+          </h1>
+
+          <div class="sub">
+            Gerado em
+            ${escapeHtml(
+              new Date()
+                .toLocaleString(
+                  'pt-BR'
+                )
+            )}
+            ·
+            ${total}
+            projeto(s) selecionado(s)
+          </div>
+
+
+          <div class="cards">
+
+            <div class="card">
+              Selecionados
+              <strong>
+                ${total}
+              </strong>
             </div>
 
-            ${projetosHtml}
+            <div class="card">
+              Em andamento
+              <strong>
+                ${andamento}
+              </strong>
+            </div>
 
-          </main>
+            <div class="card">
+              Pausados
+              <strong>
+                ${pausados}
+              </strong>
+            </div>
+
+            <div class="card">
+              Concluídos
+              <strong>
+                ${concluidos}
+              </strong>
+            </div>
+
+            <div class="card">
+              Sem conversão
+              <strong>
+                ${semConversao}
+              </strong>
+            </div>
+
+            <div class="card">
+              Conversão
+              <strong>
+                ${conversao}%
+              </strong>
+            </div>
+
+          </div>
+
+
+          <h2>
+            Resumo dos projetos
+          </h2>
+
+          <table>
+
+            <thead>
+
+              <tr>
+                <th>ID</th>
+                <th>Cliente</th>
+                <th>Projeto</th>
+                <th>Status</th>
+                <th>Etapa</th>
+                <th>Aguardando</th>
+                <th>Situação</th>
+                <th>Dias</th>
+              </tr>
+
+            </thead>
+
+            <tbody>
+              ${linhasProjetos}
+            </tbody>
+
+          </table>
+
+
+          ${blocosHistorico}
+
 
           <script>
-            window.addEventListener(
-              'load',
-              () => {
-                setTimeout(
-                  () => window.print(),
-                  500
-                );
-              }
-            );
+
+            if (
+              new URLSearchParams(
+                window.location.search
+              ).get('print') === '1'
+            ) {
+
+              window.addEventListener(
+                'load',
+                () => {
+
+                  setTimeout(
+                    () =>
+                      window.print(),
+                    250
+                  );
+                }
+              );
+            }
+
           </script>
 
         </body>
 
         </html>
-      `);
+      `;
+
+
+      res.setHeader(
+        'Content-Type',
+        'text/html; charset=utf-8'
+      );
+
+
+      res.send(
+        html
+      );
+
 
     } catch (erro) {
 
@@ -3665,7 +5510,6 @@ app.get(
     }
   }
 );
-
 
 // ============================================================
 // ERROS
@@ -3695,24 +5539,33 @@ app.use(
 );
 
 
+// ============================================================
+// INICIALIZAÇÃO DO SERVIDOR
+// ============================================================
+
 const PORT =
   process.env.PORT ||
   3000;
 
 
 async function iniciarServidor() {
+
   try {
-    await garantirEstruturaAuth();
+
+    await inicializarBanco();
 
     app.listen(
       PORT,
-      () =>
+      () => {
+
         console.log(
           `LENVIE Projetos em http://localhost:${PORT}`
-        )
+        );
+      }
     );
 
   } catch (erro) {
+
     console.error(
       'Falha ao iniciar o servidor:',
       erro
@@ -3721,5 +5574,6 @@ async function iniciarServidor() {
     process.exit(1);
   }
 }
+
 
 iniciarServidor();
