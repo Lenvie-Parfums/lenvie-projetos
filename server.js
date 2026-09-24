@@ -420,6 +420,16 @@ async function garantirEstruturaAuth() {
 
     ALTER TABLE IF EXISTS historico_etapas
       ADD COLUMN IF NOT EXISTS usuario_nome VARCHAR(120);
+
+    ALTER TABLE IF EXISTS historico_etapas
+      ADD COLUMN IF NOT EXISTS data_movimentacao DATE;
+
+    UPDATE historico_etapas
+    SET data_movimentacao = data_registro::date
+    WHERE data_movimentacao IS NULL;
+
+    ALTER TABLE IF EXISTS historico_etapas
+      ALTER COLUMN data_movimentacao SET DEFAULT CURRENT_DATE;
   `);
 
   await pool.query(`
@@ -1403,12 +1413,22 @@ app.get(
             )::int prazo90_atencao,
 
             COUNT(*) FILTER(
-              WHERE criado_em>=date_trunc('month',CURRENT_DATE)
+              WHERE data_inicio>=date_trunc('month',CURRENT_DATE)::date
+                AND data_inicio<(date_trunc('month',CURRENT_DATE)+INTERVAL '1 month')::date
             )::int entradas_mes,
 
-            COUNT(*) FILTER(
-              WHERE data_conclusao>=date_trunc('month',CURRENT_DATE)
-            )::int concluidos_mes,
+            (
+              SELECT COUNT(DISTINCT h.projeto_id)::int
+              FROM historico_etapas h
+              WHERE h.etapa IN (
+                'Concluído / Pedido Fechado',
+                'Concluído / Sem Conversão'
+              )
+                AND COALESCE(h.data_movimentacao, h.data_registro::date)
+                  >= date_trunc('month',CURRENT_DATE)::date
+                AND COALESCE(h.data_movimentacao, h.data_registro::date)
+                  < (date_trunc('month',CURRENT_DATE)+INTERVAL '1 month')::date
+            ) concluidos_mes,
 
             COALESCE(
               ROUND(
@@ -1523,11 +1543,31 @@ app.get(
         `);
 
 
+      const lembretes =
+        await pool.query(`
+          SELECT
+            id,
+            codigo,
+            cliente,
+            nome,
+            proxima_acao,
+            prazo_proxima_acao,
+            (prazo_proxima_acao - CURRENT_DATE)::int dias_para_acao
+          FROM projetos
+          WHERE status NOT IN ('Concluído','Cancelado')
+            AND prazo_proxima_acao IS NOT NULL
+            AND prazo_proxima_acao <= CURRENT_DATE + 7
+          ORDER BY prazo_proxima_acao ASC, codigo ASC
+          LIMIT 20
+        `);
+
+
       res.json({
         ...resumo.rows[0],
         por_etapa: etapasQ.rows,
         por_area: areasQ.rows,
-        atencao: atencao.rows
+        atencao: atencao.rows,
+        lembretes: lembretes.rows
       });
 
     } catch (erro) {
@@ -1660,18 +1700,16 @@ app.get(
             h.*,
 
             ROUND(
-              EXTRACT(
-                EPOCH FROM (
-                  COALESCE(
-                    LEAD(h.data_registro)
-                    OVER(
-                      ORDER BY h.data_registro
-                    ),
-                    NOW()
-                  )
-                  - h.data_registro
+              (
+                COALESCE(
+                  LEAD(COALESCE(h.data_movimentacao, h.data_registro::date))
+                  OVER(
+                    ORDER BY COALESCE(h.data_movimentacao, h.data_registro::date), h.data_registro
+                  ),
+                  CURRENT_DATE
                 )
-              ) / 86400.0,
+                - COALESCE(h.data_movimentacao, h.data_registro::date)
+              )::numeric,
               1
             ) dias_na_situacao
 
@@ -1680,6 +1718,7 @@ app.get(
           WHERE projeto_id=$1
 
           ORDER BY
+            COALESCE(data_movimentacao, data_registro::date) DESC,
             data_registro DESC
           `,
           [req.params.id]
@@ -1695,14 +1734,14 @@ app.get(
 
               etapa,
               area_pendente,
-              data_registro,
+              COALESCE(data_movimentacao, data_registro::date) data_movimentacao,
 
               COALESCE(
-                LEAD(data_registro)
+                LEAD(COALESCE(data_movimentacao, data_registro::date))
                 OVER(
-                  ORDER BY data_registro
+                  ORDER BY COALESCE(data_movimentacao, data_registro::date), data_registro
                 ),
-                NOW()
+                CURRENT_DATE
               ) fim
 
             FROM historico_etapas
@@ -1716,12 +1755,8 @@ app.get(
 
             ROUND(
               SUM(
-                EXTRACT(
-                  EPOCH FROM (
-                    fim-data_registro
-                  )
-                ) / 86400.0
-              ),
+                fim-data_movimentacao
+              )::numeric,
               1
             )::float dias
 
@@ -1730,7 +1765,7 @@ app.get(
           GROUP BY etapa
 
           ORDER BY
-            MIN(data_registro)
+            MIN(data_movimentacao)
           `,
           [req.params.id]
         );
@@ -1744,14 +1779,14 @@ app.get(
             SELECT
 
               area_pendente,
-              data_registro,
+              COALESCE(data_movimentacao, data_registro::date) data_movimentacao,
 
               COALESCE(
-                LEAD(data_registro)
+                LEAD(COALESCE(data_movimentacao, data_registro::date))
                 OVER(
-                  ORDER BY data_registro
+                  ORDER BY COALESCE(data_movimentacao, data_registro::date), data_registro
                 ),
-                NOW()
+                CURRENT_DATE
               ) fim
 
             FROM historico_etapas
@@ -1765,12 +1800,8 @@ app.get(
 
             ROUND(
               SUM(
-                EXTRACT(
-                  EPOCH FROM (
-                    fim-data_registro
-                  )
-                ) / 86400.0
-              ),
+                fim-data_movimentacao
+              )::numeric,
               1
             )::float dias
 
@@ -1996,7 +2027,8 @@ app.post(
           pendencia_proximo_passo,
           observacoes,
           usuario_id,
-          usuario_nome
+          usuario_nome,
+          data_movimentacao
 
         )
 
@@ -2008,7 +2040,8 @@ app.post(
           $4,
           'Cadastro inicial',
           $5,
-          $6
+          $6,
+          COALESCE($7::date, CURRENT_DATE)
         )
         `,
         [
@@ -2017,7 +2050,8 @@ app.post(
           p.rows[0].area_pendente,
           p.rows[0].proxima_acao,
           req.usuario.id,
-          req.usuario.nome
+          req.usuario.nome,
+          b.data_inicio || null
         ]
       );
 
@@ -2238,6 +2272,7 @@ app.put(
       ) {
 
         conclusao =
+          b.data_movimentacao ||
           new Date();
       }
 
@@ -2327,6 +2362,12 @@ app.put(
         ) !==
         String(
           v.prazoAcao || ''
+        ) ||
+
+        Boolean(
+          String(
+            b.movimentacao_observacao || ''
+          ).trim()
         );
 
 
@@ -2406,7 +2447,8 @@ app.put(
             pendencia_proximo_passo,
             observacoes,
             usuario_id,
-            usuario_nome
+            usuario_nome,
+            data_movimentacao
 
           )
 
@@ -2418,7 +2460,8 @@ app.put(
             $5,
             $6,
             $7,
-            $8
+            $8,
+            COALESCE($9::date, CURRENT_DATE)
           )
           `,
           [
@@ -2432,7 +2475,8 @@ app.put(
             detalhes.join(' | ') ||
             'Atualização do projeto',
             req.usuario.id,
-            req.usuario.nome
+            req.usuario.nome,
+            b.data_movimentacao || null
           ]
         );
       }
