@@ -1,1 +1,212 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Projetos</title><link rel="stylesheet" href="/css/style.css"></head><body><header><strong>LENVIE · Projetos</strong><nav><a href="/">Dashboard</a><a href="/projetos.html">Projetos</a><a href="/novo-projeto.html">Novo Projeto</a></nav></header><main class="wrap"><div class="page-head"><h1>Projetos</h1><a class="btn" href="/api/relatorios/projetos.xlsx">Exportar relatório XLSX</a></div><div class="toolbar"><input id="busca" placeholder="Buscar cliente, projeto ou ID..."><select id="filtro"><option value="">Todos os status</option><option>Em andamento</option><option>Pausado</option><option>Concluído</option><option>Cancelado</option></select></div><div class="panel table-scroll"><table><thead><tr><th>ID</th><th>Cliente</th><th>Projeto</th><th>Status</th><th>Situação</th><th>Etapa</th><th>Pendência</th><th>Previsão</th></tr></thead><tbody id="lista"></tbody></table></div></main><script src="/js/projetos.js"></script></body></html>
+<!doctype html>
+
+<html lang="pt-BR">
+
+<head>
+
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  >
+
+  <title>
+    Projetos | LENVIE
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="/css/style.css"
+  >
+
+</head>
+
+<body>
+
+  <header>
+
+    <a
+      href="/"
+      class="brand"
+    >
+      <span>LENVIE</span>
+      <small>Projetos</small>
+    </a>
+
+    <nav>
+
+      <a href="/">
+        Dashboard
+      </a>
+
+      <a href="/projetos.html">
+        Projetos
+      </a>
+
+      <a href="/projeto.html">
+        Novo Projeto
+      </a>
+
+    </nav>
+
+  </header>
+
+
+  <main class="wrap">
+
+    <div class="page-head">
+
+      <div>
+
+        <h1>
+          Projetos
+        </h1>
+
+        <p class="muted">
+          Selecione os projetos que deseja incluir no relatório.
+        </p>
+
+      </div>
+
+
+      <a
+        class="btn"
+        href="/projeto.html"
+      >
+        + Novo Projeto
+      </a>
+
+    </div>
+
+
+    <div class="panel selection-panel">
+
+      <div class="toolbar">
+
+        <input
+          id="busca"
+          placeholder="Buscar cliente, projeto ou ID..."
+        >
+
+
+        <select id="filtro">
+
+          <option value="">
+            Todos os status
+          </option>
+
+          <option>
+            Em andamento
+          </option>
+
+          <option>
+            Pausado
+          </option>
+
+          <option>
+            Concluído
+          </option>
+
+          <option>
+            Cancelado
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <div class="selection-actions">
+
+        <label class="check-all">
+
+          <input
+            type="checkbox"
+            id="selecionarTodos"
+          >
+
+          Selecionar projetos visíveis
+
+        </label>
+
+
+        <span
+          id="contadorSelecionados"
+          class="selection-counter"
+        >
+          0 selecionados
+        </span>
+
+
+        <button
+          id="exportarPdf"
+          type="button"
+          class="btn secondary"
+        >
+          Exportar PDF
+        </button>
+
+
+        <button
+          id="exportarXlsx"
+          type="button"
+          class="btn secondary"
+        >
+          Exportar XLSX
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <div class="panel table-scroll">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th class="check-column">
+              Selecionar
+            </th>
+
+            <th>ID</th>
+
+            <th>Cliente</th>
+
+            <th>Projeto</th>
+
+            <th>Status</th>
+
+            <th>Situação</th>
+
+            <th>Etapa</th>
+
+            <th>Pendência</th>
+
+            <th>Previsão</th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody id="lista"></tbody>
+
+      </table>
+
+    </div>
+
+  </main>
+
+
+  <script
+    src="/js/projetos.js"
+  ></script>
+
+</body>
+
+</html>
