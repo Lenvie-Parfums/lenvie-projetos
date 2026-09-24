@@ -1349,6 +1349,20 @@ app.get(
 
     try {
 
+      const agora = new Date();
+      const anoInformado = Number(req.query.ano);
+      const mesInformado = Number(req.query.mes);
+
+      const ano = Number.isInteger(anoInformado) && anoInformado >= 2000 && anoInformado <= 2100
+        ? anoInformado
+        : agora.getFullYear();
+
+      const mes = Number.isInteger(mesInformado) && mesInformado >= 1 && mesInformado <= 12
+        ? mesInformado
+        : agora.getMonth() + 1;
+
+      const inicioPeriodo = `${ano}-${String(mes).padStart(2, '0')}-01`;
+
       const resumo =
         await pool.query(`
           SELECT
@@ -1413,8 +1427,8 @@ app.get(
             )::int prazo90_atencao,
 
             COUNT(*) FILTER(
-              WHERE data_inicio>=date_trunc('month',CURRENT_DATE)::date
-                AND data_inicio<(date_trunc('month',CURRENT_DATE)+INTERVAL '1 month')::date
+              WHERE data_inicio >= $1::date
+                AND data_inicio < ($1::date + INTERVAL '1 month')::date
             )::int entradas_mes,
 
             (
@@ -1424,28 +1438,32 @@ app.get(
                 'Concluído / Pedido Fechado',
                 'Concluído / Sem Conversão'
               )
-                AND COALESCE(h.data_movimentacao, h.data_registro::date)
-                  >= date_trunc('month',CURRENT_DATE)::date
-                AND COALESCE(h.data_movimentacao, h.data_registro::date)
-                  < (date_trunc('month',CURRENT_DATE)+INTERVAL '1 month')::date
+                AND COALESCE(h.data_movimentacao, h.data_registro::date) >= $1::date
+                AND COALESCE(h.data_movimentacao, h.data_registro::date) < ($1::date + INTERVAL '1 month')::date
             ) concluidos_mes,
+
+            (
+              SELECT COUNT(DISTINCT h.projeto_id)::int
+              FROM historico_etapas h
+              WHERE h.area_pendente='Cliente'
+                AND COALESCE(h.data_movimentacao, h.data_registro::date) >= $1::date
+                AND COALESCE(h.data_movimentacao, h.data_registro::date) < ($1::date + INTERVAL '1 month')::date
+            ) aguardando_cliente_mes,
 
             COALESCE(
               ROUND(
-                AVG(
-                  COALESCE(data_conclusao,CURRENT_DATE)
-                  - data_inicio
-                )
+                AVG(data_conclusao - data_inicio)
                 FILTER(
-                  WHERE status<>'Cancelado'
+                  WHERE data_conclusao >= $1::date
+                    AND data_conclusao < ($1::date + INTERVAL '1 month')::date
                 ),
                 1
               ),
               0
-            )::float tempo_medio_dias
+            )::float tempo_medio_mes_dias
 
           FROM projetos
-        `);
+        `, [inicioPeriodo]);
 
 
       const etapasQ =
@@ -1567,7 +1585,8 @@ app.get(
         por_etapa: etapasQ.rows,
         por_area: areasQ.rows,
         atencao: atencao.rows,
-        lembretes: lembretes.rows
+        lembretes: lembretes.rows,
+        periodo_movimento: { ano, mes }
       });
 
     } catch (erro) {
