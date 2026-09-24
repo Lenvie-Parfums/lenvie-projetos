@@ -1,7 +1,22 @@
 document.addEventListener('DOMContentLoaded', async () => {
 
+  // ============================================================
+  // CONFIGURAÇÃO
+  // ============================================================
+
+  const params =
+    new URLSearchParams(window.location.search);
+
   const projetoId =
-    new URLSearchParams(window.location.search).get('id');
+    params.get('id');
+
+  const modoEdicao =
+    Boolean(projetoId);
+
+
+  // ============================================================
+  // ELEMENTOS
+  // ============================================================
 
   const form =
     document.getElementById('form');
@@ -9,7 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const titulo =
     document.getElementById('titulo');
 
-  const resumo =
+  const resumoProjeto =
     document.getElementById('resumoProjeto');
 
   const statusSelect =
@@ -24,6 +39,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   const prazo90 =
     document.getElementById('prazo90');
 
+  const btnSalvar =
+    document.getElementById('btnSalvar');
+
+  const btnExportar =
+    document.getElementById('btnExportar');
+
+  const blocoMovimentacao =
+    document.getElementById('blocoMovimentacao');
+
+  const blocoAcompanhamento =
+    document.getElementById('blocoAcompanhamento');
+
   const temposEtapa =
     document.getElementById('temposEtapa');
 
@@ -35,22 +62,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
   // ============================================================
-  // FUNÇÕES AUXILIARES
+  // AUXILIARES
   // ============================================================
 
   function dataInput(valor) {
 
-    if (!valor) return '';
+    if (!valor) {
+      return '';
+    }
 
     return String(valor).substring(0, 10);
   }
 
 
-  function preencherSelect(select, valores) {
+  function preencherSelect(
+    select,
+    valores = []
+  ) {
 
     select.innerHTML = '';
 
-    (valores || []).forEach(valor => {
+    valores.forEach(valor => {
 
       const option =
         document.createElement('option');
@@ -63,19 +95,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
 
-  function definirSelect(
+  function selecionar(
     select,
     valor,
-    fallback
+    fallback = ''
   ) {
 
     const valorFinal =
-      valor || fallback || '';
+      valor || fallback;
 
-    if (!valorFinal) return;
+    if (!valorFinal) {
+      return;
+    }
 
 
-    let existe =
+    const existe =
       Array.from(select.options)
         .some(
           option =>
@@ -95,81 +129,221 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
 
-    select.value = valorFinal;
+    select.value =
+      valorFinal;
   }
 
 
   function preencherCampo(
     nome,
     valor,
-    data = false
+    ehData = false
   ) {
 
     const campo =
       form.elements.namedItem(nome);
 
-    if (!campo) return;
+    if (!campo) {
+      return;
+    }
 
 
     campo.value =
-      data
+      ehData
         ? dataInput(valor)
         : (valor ?? '');
   }
 
 
+  function hojeInput() {
+
+    const agora =
+      new Date();
+
+    const ano =
+      agora.getFullYear();
+
+    const mes =
+      String(
+        agora.getMonth() + 1
+      ).padStart(2, '0');
+
+    const dia =
+      String(
+        agora.getDate()
+      ).padStart(2, '0');
+
+
+    return `${ano}-${mes}-${dia}`;
+  }
+
+
   // ============================================================
-  // CARREGAR PROJETO
+  // CARREGAR CONFIG
   // ============================================================
 
-  async function carregar() {
+  let config;
 
-    if (!projetoId) {
 
-      alert('Projeto não informado.');
+  try {
 
-      return;
+    const resposta =
+      await fetch('/api/config');
+
+
+    if (!resposta.ok) {
+
+      throw new Error(
+        `Erro HTTP ${resposta.status}`
+      );
     }
+
+
+    config =
+      await resposta.json();
+
+
+    preencherSelect(
+      statusSelect,
+      config.status || []
+    );
+
+
+    preencherSelect(
+      etapaSelect,
+      config.etapas || []
+    );
+
+
+    preencherSelect(
+      areaSelect,
+      config.areas || []
+    );
+
+
+  } catch (erro) {
+
+    console.error(
+      'Erro ao carregar configurações:',
+      erro
+    );
+
+
+    alert(
+      'Não foi possível carregar as configurações do sistema.'
+    );
+
+
+    return;
+  }
+
+
+  // ============================================================
+  // NOVO PROJETO
+  // ============================================================
+
+  if (!modoEdicao) {
+
+    titulo.textContent =
+      'Novo Projeto';
+
+
+    resumoProjeto.innerHTML = `
+      <span class="muted">
+        Cadastre um novo projeto para iniciar o acompanhamento.
+      </span>
+    `;
+
+
+    btnSalvar.textContent =
+      'Cadastrar Projeto';
+
+
+    btnExportar.style.display =
+      'none';
+
+
+    blocoMovimentacao.style.display =
+      'none';
+
+
+    blocoAcompanhamento.style.display =
+      'none';
+
+
+    // Valores automáticos
+
+    selecionar(
+      statusSelect,
+      'Em andamento'
+    );
+
+
+    selecionar(
+      etapaSelect,
+      'Entrada / Oportunidade'
+    );
+
+
+    selecionar(
+      areaSelect,
+      'Sem pendência'
+    );
+
+
+    preencherCampo(
+      'responsavel',
+      'Erika'
+    );
+
+
+    preencherCampo(
+      'data_inicio',
+      hojeInput()
+    );
+  }
+
+
+  // ============================================================
+  // EDITAR PROJETO
+  // ============================================================
+
+  if (modoEdicao) {
+
+    btnSalvar.textContent =
+      'Salvar atualização';
+
+
+    btnExportar.style.display =
+      'inline-flex';
+
+
+    blocoMovimentacao.style.display =
+      'block';
+
+
+    blocoAcompanhamento.style.display =
+      'block';
 
 
     try {
 
-      // CONFIGURAÇÕES
-
-      const respostaConfig =
-        await fetch('/api/config');
-
-
-      if (!respostaConfig.ok) {
-
-        throw new Error(
-          'Falha ao carregar /api/config'
-        );
-      }
-
-
-      const config =
-        await respostaConfig.json();
-
-
-      // PROJETO
-
-      const respostaProjeto =
+      const resposta =
         await fetch(
           `/api/projetos/${projetoId}`
         );
 
 
-      if (!respostaProjeto.ok) {
+      if (!resposta.ok) {
 
         throw new Error(
-          `Falha ao carregar projeto: HTTP ${respostaProjeto.status}`
+          `Erro HTTP ${resposta.status}`
         );
       }
 
 
       const dados =
-        await respostaProjeto.json();
+        await resposta.json();
 
 
       const projeto =
@@ -179,50 +353,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!projeto) {
 
         throw new Error(
-          'API não retornou o projeto.'
+          'Projeto não encontrado.'
         );
       }
-
-
-      // ========================================================
-      // SELECTS
-      // ========================================================
-
-      preencherSelect(
-        statusSelect,
-        config.status
-      );
-
-      preencherSelect(
-        etapaSelect,
-        config.etapas
-      );
-
-      preencherSelect(
-        areaSelect,
-        config.areas
-      );
-
-
-      definirSelect(
-        statusSelect,
-        projeto.status,
-        'Em andamento'
-      );
-
-
-      definirSelect(
-        etapaSelect,
-        projeto.etapa_atual,
-        'Entrada / Oportunidade'
-      );
-
-
-      definirSelect(
-        areaSelect,
-        projeto.area_pendente,
-        'Sem pendência'
-      );
 
 
       // ========================================================
@@ -233,17 +366,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         `${projeto.codigo} · ${projeto.nome}`;
 
 
-      let textoResumo = '';
-
-
-      textoResumo += `
+      let resumo = `
         <span class="flag">
           ${projeto.situacao_automatica || 'SEM CLASSIFICAÇÃO'}
         </span>
-      `;
 
-
-      textoResumo += `
         <span>
           ${projeto.dias_em_aberto ?? 0}
           dias desde o início
@@ -258,7 +385,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (projeto.dias_para_90 >= 0) {
 
-          textoResumo += `
+          resumo += `
             <span>
               • ${projeto.dias_para_90}
               dias para o prazo de 90 dias
@@ -267,9 +394,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } else {
 
-          textoResumo += `
+          resumo += `
             <span>
-              • ${Math.abs(projeto.dias_para_90)}
+              • ${Math.abs(
+                projeto.dias_para_90
+              )}
               dias além do prazo de 90 dias
             </span>
           `;
@@ -277,8 +406,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
 
-      resumo.innerHTML =
-        textoResumo;
+      resumoProjeto.innerHTML =
+        resumo;
 
 
       // ========================================================
@@ -316,6 +445,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       );
 
       preencherCampo(
+        'data_inicio',
+        projeto.data_inicio,
+        true
+      );
+
+      preencherCampo(
         'previsao_conclusao',
         projeto.previsao_conclusao,
         true
@@ -344,6 +479,31 @@ document.addEventListener('DOMContentLoaded', async () => {
       );
 
 
+      // ========================================================
+      // SELECTS
+      // ========================================================
+
+      selecionar(
+        statusSelect,
+        projeto.status,
+        'Em andamento'
+      );
+
+
+      selecionar(
+        etapaSelect,
+        projeto.etapa_atual,
+        'Entrada / Oportunidade'
+      );
+
+
+      selecionar(
+        areaSelect,
+        projeto.area_pendente,
+        'Sem pendência'
+      );
+
+
       prazo90.value =
         dataInput(
           projeto.prazo_90_dias
@@ -355,14 +515,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       // ========================================================
 
       if (
-        Array.isArray(dados.tempos_etapa) &&
+        Array.isArray(
+          dados.tempos_etapa
+        ) &&
         dados.tempos_etapa.length
       ) {
 
         temposEtapa.innerHTML =
           dados.tempos_etapa
             .map(item => `
-
               <div class="bar-row">
 
                 <span>
@@ -374,7 +535,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </b>
 
               </div>
-
             `)
             .join('');
 
@@ -390,14 +550,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       // ========================================================
 
       if (
-        Array.isArray(dados.tempos_espera) &&
+        Array.isArray(
+          dados.tempos_espera
+        ) &&
         dados.tempos_espera.length
       ) {
 
         temposEspera.innerHTML =
           dados.tempos_espera
             .map(item => `
-
               <div class="bar-row">
 
                 <span>
@@ -409,7 +570,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </b>
 
               </div>
-
             `)
             .join('');
 
@@ -425,7 +585,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       // ========================================================
 
       if (
-        Array.isArray(dados.historico) &&
+        Array.isArray(
+          dados.historico
+        ) &&
         dados.historico.length
       ) {
 
@@ -450,7 +612,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
               return `
-
                 <div class="history">
 
                   <b>
@@ -489,7 +650,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                   }
 
                 </div>
-
               `;
             })
             .join('');
@@ -508,11 +668,129 @@ document.addEventListener('DOMContentLoaded', async () => {
         erro
       );
 
+
       alert(
         `Não foi possível carregar o projeto.\n\n${erro.message}`
       );
     }
   }
+
+
+  // ============================================================
+  // AUTOMAÇÃO DA CONCLUSÃO
+  // ============================================================
+
+  etapaSelect.addEventListener(
+    'change',
+    () => {
+
+      const etapa =
+        etapaSelect.value;
+
+
+      if (
+        etapa ===
+          'Concluído / Pedido Fechado' ||
+        etapa ===
+          'Concluído / Sem Conversão'
+      ) {
+
+        selecionar(
+          statusSelect,
+          'Concluído'
+        );
+
+
+        selecionar(
+          areaSelect,
+          'Sem pendência'
+        );
+      }
+
+
+      if (
+        etapa ===
+        'Aprovação do Cliente'
+      ) {
+
+        const campoAprovacao =
+          form.elements.namedItem(
+            'data_aprovacao'
+          );
+
+
+        if (
+          campoAprovacao &&
+          !campoAprovacao.value
+        ) {
+
+          campoAprovacao.value =
+            hojeInput();
+        }
+      }
+    }
+  );
+
+
+  // ============================================================
+  // PREVISÃO VISUAL DOS 90 DIAS
+  // ============================================================
+
+  const campoAprovacao =
+    form.elements.namedItem(
+      'data_aprovacao'
+    );
+
+
+  campoAprovacao.addEventListener(
+    'change',
+    () => {
+
+      if (!campoAprovacao.value) {
+
+        prazo90.value = '';
+
+        return;
+      }
+
+
+      const partes =
+        campoAprovacao.value
+          .split('-')
+          .map(Number);
+
+
+      const data =
+        new Date(
+          partes[0],
+          partes[1] - 1,
+          partes[2]
+        );
+
+
+      data.setDate(
+        data.getDate() + 90
+      );
+
+
+      const ano =
+        data.getFullYear();
+
+      const mes =
+        String(
+          data.getMonth() + 1
+        ).padStart(2, '0');
+
+      const dia =
+        String(
+          data.getDate()
+        ).padStart(2, '0');
+
+
+      prazo90.value =
+        `${ano}-${mes}-${dia}`;
+    }
+  );
 
 
   // ============================================================
@@ -528,34 +806,56 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       try {
 
-        const dadosFormulario =
+        const dados =
           Object.fromEntries(
             new FormData(form).entries()
           );
 
 
-        // Campos críticos
+        // Garantias
 
-        dadosFormulario.status =
+        dados.status =
           statusSelect.value ||
           'Em andamento';
 
 
-        dadosFormulario.etapa_atual =
+        dados.etapa_atual =
           etapaSelect.value ||
           'Entrada / Oportunidade';
 
 
-        dadosFormulario.area_pendente =
+        dados.area_pendente =
           areaSelect.value ||
           'Sem pendência';
 
 
+        let url;
+        let metodo;
+
+
+        if (modoEdicao) {
+
+          url =
+            `/api/projetos/${projetoId}`;
+
+          metodo =
+            'PUT';
+
+        } else {
+
+          url =
+            '/api/projetos';
+
+          metodo =
+            'POST';
+        }
+
+
         const resposta =
           await fetch(
-            `/api/projetos/${projetoId}`,
+            url,
             {
-              method: 'PUT',
+              method: metodo,
 
               headers: {
                 'Content-Type':
@@ -563,9 +863,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               },
 
               body:
-                JSON.stringify(
-                  dadosFormulario
-                )
+                JSON.stringify(dados)
             }
           );
 
@@ -594,28 +892,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
 
+        // NOVO PROJETO:
+        // redireciona diretamente para ele
+
+        if (
+          !modoEdicao &&
+          resultado.id
+        ) {
+
+          window.location.href =
+            `/projeto.html?id=${resultado.id}`;
+
+          return;
+        }
+
+
+        // EDIÇÃO
+
         window.location.reload();
 
 
       } catch (erro) {
 
         console.error(
-          'Erro ao salvar:',
+          'Erro ao salvar projeto:',
           erro
         );
 
+
         alert(
-          `Erro ao salvar atualização.\n\n${erro.message}`
+          `Não foi possível salvar o projeto.\n\n${erro.message}`
         );
       }
     }
   );
-
-
-  // ============================================================
-  // INICIAR
-  // ============================================================
-
-  await carregar();
 
 });
