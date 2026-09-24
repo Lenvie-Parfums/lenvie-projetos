@@ -1,0 +1,27 @@
+LENVIE PROJETOS - LOGIN E PERMISSOES V2
+
+Pacote completo gerado novamente a partir da base atualizada.
+
+Arquivos essenciais do login:
+- public/login.html
+- public/usuarios.html
+- public/css/auth.css
+- public/css/login.css
+- public/js/auth.js
+- public/js/login.js
+- public/js/usuarios.js
+- server.js
+- database/schema.sql
+
+Depois de copiar para o repositorio local:
+1. git status
+2. git add .
+3. git status
+4. git commit -m "Adiciona login e controle de permissoes v2"
+5. git pull --rebase origin main
+6. git push origin main
+
+Antes do deploy, configure no Render:
+ADMIN_NAME
+ADMIN_EMAIL
+ADMIN_PASSWORD

@@ -1,321 +1,242 @@
-<!doctype html>
+const fmt = valor =>
+  valor
+    ? String(valor)
+        .slice(0, 10)
+        .split('-')
+        .reverse()
+        .join('/')
+    : '—';
 
-<html lang="pt-BR">
 
-<head>
+function barras(lista, elemento) {
+  elemento.innerHTML =
+    lista
+      .map(
+        item => `
+          <div class="bar-row">
+            <span>${item.nome || '—'}</span>
+            <b>${item.total}</b>
+          </div>
+        `
+      )
+      .join('') ||
+    '<span class="muted">Sem dados.</span>';
+}
 
-  <meta charset="utf-8">
 
-  <meta
-    name="viewport"
-    content="width=device-width,initial-scale=1"
-  >
+function textoLembrete(dias) {
+  const numero =
+    Number(dias);
 
-  <title>
-    LENVIE - Projetos
-  </title>
+  if (numero < 0) {
+    return `Vencida há ${Math.abs(numero)} dia${
+      Math.abs(numero) === 1
+        ? ''
+        : 's'
+    }`;
+  }
 
-  <link
-    rel="stylesheet"
-    href="/css/style.css"
-  >
+  if (numero === 0) {
+    return 'Vence hoje';
+  }
 
-  <link
-    rel="stylesheet"
-    href="/css/auth.css"
-  >
+  if (numero === 1) {
+    return 'Vence amanhã';
+  }
 
-</head>
+  return `Vence em ${numero} dias`;
+}
 
-<body>
 
-  <header>
+fetch('/api/indicadores')
 
-    <a
-      href="/"
-      class="brand"
-    >
-      <span>LENVIE</span>
-      <small>Projetos</small>
-    </a>
+  .then(resposta => {
 
+    if (!resposta.ok) {
+      throw new Error(
+        'Falha ao carregar indicadores'
+      );
+    }
 
-    <nav>
+    return resposta.json();
+  })
 
-      <a href="/">
-        Dashboard
-      </a>
+  .then(dados => {
 
-      <a href="/projetos.html">
-        Projetos
-      </a>
+    cadastrados.textContent =
+      dados.cadastrados;
 
-      <a
-        href="/projeto.html"
-        data-permission="criar"
-      >
-        Novo Projeto
-      </a>
+    andamento.textContent =
+      dados.em_andamento;
 
-    </nav>
+    pausados.textContent =
+      dados.pausados;
 
-  </header>
+    concluidos.textContent =
+      dados.concluidos;
 
+    semConversao.textContent =
+      dados.sem_conversao;
 
-  <main class="wrap">
+    atrasados.textContent =
+      dados.atrasados;
 
-    <div class="page-head">
+    acoesVencidas.textContent =
+      dados.acoes_vencidas;
 
-      <div>
+    semAtualizacao.textContent =
+      dados.sem_atualizacao;
 
-        <h1>
-          Visão Geral
-        </h1>
+    prazo90Vencido.textContent =
+      dados.prazo90_vencido;
 
-        <p class="muted">
-          Acompanhamento centralizado dos projetos comerciais.
-        </p>
+    entradasMes.textContent =
+      dados.entradas_mes;
 
-      </div>
+    concluidosMes.textContent =
+      dados.concluidos_mes;
 
+    cliente.textContent =
+      dados.aguardando_cliente;
 
-      <a
-        class="btn"
-        href="/projeto.html"
-        data-permission="criar"
-      >
-        + Novo Projeto
-      </a>
+    tempoMedio.textContent =
+      dados.tempo_medio_dias;
 
-    </div>
 
+    barras(
+      dados.por_etapa,
+      porEtapa
+    );
 
-    <section class="cards">
+    barras(
+      dados.por_area,
+      porArea
+    );
 
-      <div class="card">
 
-        Projetos cadastrados
+    lembretesLista.innerHTML =
+      (dados.lembretes || [])
 
-        <b id="cadastrados">
-          —
-        </b>
+        .map(
+          projeto => `
+            <tr>
 
-      </div>
+              <td>
+                ${fmt(
+                  projeto.prazo_proxima_acao
+                )}
+              </td>
 
+              <td>
 
-      <div class="card">
+                <a
+                  href="/projeto.html?id=${projeto.id}"
+                >
+                  ${projeto.codigo} · ${projeto.nome}
+                </a>
 
-        Em andamento
+              </td>
 
-        <b id="andamento">
-          —
-        </b>
+              <td>
+                ${projeto.cliente}
+              </td>
 
-      </div>
+              <td>
+                ${projeto.proxima_acao || '—'}
+              </td>
 
+              <td>
 
-      <div class="card">
+                <span class="flag">
+                  ${textoLembrete(
+                    projeto.dias_para_acao
+                  )}
+                </span>
 
-        Pausados
+              </td>
 
-        <b id="pausados">
-          —
-        </b>
+            </tr>
+          `
+        )
 
-      </div>
+        .join('') ||
 
+      `
+        <tr>
+          <td colspan="5">
+            Nenhuma próxima ação vencida ou prevista para os próximos 7 dias.
+          </td>
+        </tr>
+      `;
 
-      <div class="card">
 
-        Concluídos
+    atencaoLista.innerHTML =
+      dados.atencao
 
-        <b id="concluidos">
-          —
-        </b>
+        .map(
+          projeto => `
+            <tr>
 
-      </div>
+              <td>
 
-    </section>
+                <a
+                  href="/projeto.html?id=${projeto.id}"
+                >
+                  ${projeto.codigo}
+                </a>
 
+              </td>
 
-    <h2>
-      Atenção
-    </h2>
+              <td>
+                ${projeto.cliente}
+              </td>
 
+              <td>
+                ${projeto.nome}
+              </td>
 
-    <section class="cards">
+              <td>
 
-      <div class="card">
+                <span class="flag">
+                  ${projeto.situacao}
+                </span>
 
-        Atrasados
+              </td>
 
-        <b id="atrasados">
-          —
-        </b>
+              <td>
+                ${projeto.proxima_acao || '—'}
+              </td>
 
-      </div>
+              <td>
+                ${
+                  fmt(
+                    projeto.prazo_proxima_acao ||
+                    projeto.previsao_conclusao ||
+                    projeto.prazo_90_dias
+                  )
+                }
+              </td>
 
+            </tr>
+          `
+        )
 
-      <div class="card">
+        .join('') ||
 
-        Ações vencidas
+      `
+        <tr>
+          <td colspan="6">
+            Nenhum projeto exigindo atenção.
+          </td>
+        </tr>
+      `;
+  })
 
-        <b id="acoesVencidas">
-          —
-        </b>
+  .catch(erro => {
 
-      </div>
+    console.error(erro);
 
-
-      <div class="card">
-
-        Sem atualização +15d
-
-        <b id="semAtualizacao">
-          —
-        </b>
-
-      </div>
-
-
-      <div class="card">
-
-        90 dias vencido
-
-        <b id="prazo90Vencido">
-          —
-        </b>
-
-      </div>
-
-    </section>
-
-
-    <h2>
-      Movimento do mês
-    </h2>
-
-
-    <section class="cards">
-
-      <div class="card">
-
-        Entradas no mês
-
-        <b id="entradasMes">
-          —
-        </b>
-
-      </div>
-
-
-      <div class="card">
-
-        Concluídos no mês
-
-        <b id="concluidosMes">
-          —
-        </b>
-
-      </div>
-
-
-      <div class="card">
-
-        Aguardando cliente
-
-        <b id="cliente">
-          —
-        </b>
-
-      </div>
-
-
-      <div class="card">
-
-        Tempo médio aberto/concluído
-
-        <b id="tempoMedio">
-          —
-        </b>
-
-        <small>
-          dias
-        </small>
-
-      </div>
-
-    </section>
-
-
-    <div class="split">
-
-      <section class="panel">
-
-        <h2>
-          Projetos por etapa
-        </h2>
-
-        <div id="porEtapa"></div>
-
-      </section>
-
-
-      <section class="panel">
-
-        <h2>
-          Onde estão as pendências
-        </h2>
-
-        <div id="porArea"></div>
-
-      </section>
-
-    </div>
-
-
-    <h2>
-      Projetos que pedem atenção
-    </h2>
-
-
-    <div class="panel table-scroll">
-
-      <table>
-
-        <thead>
-
-          <tr>
-
-            <th>ID</th>
-            <th>Cliente</th>
-            <th>Projeto</th>
-            <th>Situação</th>
-            <th>Próxima ação</th>
-            <th>Prazo</th>
-
-          </tr>
-
-        </thead>
-
-
-        <tbody
-          id="atencaoLista"
-        ></tbody>
-
-      </table>
-
-    </div>
-
-  </main>
-
-
-  <script src="/js/auth.js"></script>
-
-  <script
-    src="/js/dashboard.js"
-  ></script>
-
-</body>
-
-</html>
+    alert(
+      'Não foi possível carregar os indicadores.'
+    );
+  });

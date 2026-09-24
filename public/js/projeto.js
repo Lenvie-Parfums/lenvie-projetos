@@ -13,7 +13,6 @@ document.addEventListener(
     const modoEdicao =
       Boolean(projetoId);
 
-
     const usuario =
       await window.LENVIE_AUTH.ready;
 
@@ -36,6 +35,7 @@ document.addEventListener(
       !modoEdicao &&
       !podeCriar
     ) {
+
       window.location.href =
         '/projetos.html';
 
@@ -123,6 +123,11 @@ document.addEventListener(
         'historico'
       );
 
+    const dataMovimentacao =
+      document.getElementById(
+        'dataMovimentacao'
+      );
+
 
     function dataInput(valor) {
 
@@ -131,7 +136,7 @@ document.addEventListener(
       }
 
       return String(valor)
-        .substring(0,10);
+        .substring(0, 10);
     }
 
 
@@ -178,7 +183,6 @@ document.addEventListener(
         return;
       }
 
-
       const existe =
         Array.from(
           select.options
@@ -187,7 +191,6 @@ document.addEventListener(
             option.value ===
             valorFinal
         );
-
 
       if (!existe) {
 
@@ -206,7 +209,6 @@ document.addEventListener(
           option
         );
       }
-
 
       select.value =
         valorFinal;
@@ -228,7 +230,6 @@ document.addEventListener(
         return;
       }
 
-
       campo.value =
         ehData
           ? dataInput(valor)
@@ -246,7 +247,7 @@ document.addEventListener(
 
       const mes =
         String(
-          agora.getMonth()+1
+          agora.getMonth() + 1
         ).padStart(
           2,
           '0'
@@ -260,10 +261,7 @@ document.addEventListener(
           '0'
         );
 
-
-      return (
-        `${ano}-${mes}-${dia}`
-      );
+      return `${ano}-${mes}-${dia}`;
     }
 
 
@@ -283,7 +281,6 @@ document.addEventListener(
 
         return;
       }
-
 
       elemento.innerHTML =
         dados
@@ -306,12 +303,7 @@ document.addEventListener(
     }
 
 
-    // ========================================================
-    // CONFIG
-    // ========================================================
-
     let config;
-
 
     try {
 
@@ -320,7 +312,6 @@ document.addEventListener(
           '/api/config'
         );
 
-
       if (!resposta.ok) {
 
         throw new Error(
@@ -328,10 +319,8 @@ document.addEventListener(
         );
       }
 
-
       config =
         await resposta.json();
-
 
       preencherSelect(
         statusSelect,
@@ -360,15 +349,10 @@ document.addEventListener(
     }
 
 
-    // ========================================================
-    // NOVO
-    // ========================================================
-
     if (!modoEdicao) {
 
       titulo.textContent =
         'Novo Projeto';
-
 
       resumoProjeto.innerHTML = `
         <span class="muted">
@@ -376,40 +360,33 @@ document.addEventListener(
         </span>
       `;
 
-
       selecionar(
         statusSelect,
         'Em andamento'
       );
-
 
       selecionar(
         etapaSelect,
         'Entrada / Oportunidade'
       );
 
-
       selecionar(
         areaSelect,
         'Sem pendência'
       );
-
 
       preencherCampo(
         'responsavel',
         'Erika'
       );
 
-
       preencherCampo(
         'data_inicio',
         hojeInput()
       );
 
-
       btnSalvar.textContent =
         'Cadastrar Projeto';
-
 
       acoesExportacao.style.display =
         'none';
@@ -422,10 +399,6 @@ document.addEventListener(
     }
 
 
-    // ========================================================
-    // EDIÇÃO
-    // ========================================================
-
     if (modoEdicao) {
 
       btnSalvar.textContent =
@@ -436,6 +409,11 @@ document.addEventListener(
 
       blocoMovimentacao.style.display =
         'block';
+
+      if (dataMovimentacao) {
+        dataMovimentacao.value =
+          hojeInput();
+      }
 
       blocoAcompanhamento.style.display =
         'block';
@@ -470,14 +448,12 @@ document.addEventListener(
             `/api/projetos/${projetoId}`
           );
 
-
         if (!resposta.ok) {
 
           throw new Error(
             `HTTP ${resposta.status}`
           );
         }
-
 
         const dados =
           await resposta.json();
@@ -492,7 +468,10 @@ document.addEventListener(
 
         let resumo = `
           <span class="flag">
-            ${projeto.situacao_automatica || 'SEM CLASSIFICAÇÃO'}
+            ${
+              projeto.situacao_automatica ||
+              'SEM CLASSIFICAÇÃO'
+            }
           </span>
 
           <span>
@@ -503,14 +482,13 @@ document.addEventListener(
 
 
         if (
-          projeto.dias_para_90 !==
-            null &&
-          projeto.dias_para_90 !==
-            undefined
+          projeto.dias_para_90 !== null &&
+          projeto.dias_para_90 !== undefined
         ) {
 
           resumo +=
             projeto.dias_para_90 >= 0
+
               ? `
                 <span>
                   •
@@ -518,6 +496,7 @@ document.addEventListener(
                   dias para o prazo de 90 dias
                 </span>
               `
+
               : `
                 <span>
                   •
@@ -630,7 +609,6 @@ document.addEventListener(
           'etapa'
         );
 
-
         renderizarTempos(
           dados.tempos_espera,
           temposEspera,
@@ -647,17 +625,30 @@ document.addEventListener(
 
           historico.innerHTML =
             dados.historico
+
               .map(
                 item => {
 
                   const data =
-                    item.data_registro
-                      ? new Date(
-                          item.data_registro
-                        ).toLocaleString(
-                          'pt-BR'
+                    item.data_movimentacao
+
+                      ? String(
+                          item.data_movimentacao
                         )
-                      : '—';
+                          .slice(0, 10)
+                          .split('-')
+                          .reverse()
+                          .join('/')
+
+                      : item.data_registro
+
+                        ? new Date(
+                            item.data_registro
+                          ).toLocaleString(
+                            'pt-BR'
+                          )
+
+                        : '—';
 
 
                   const dias =
@@ -691,24 +682,47 @@ document.addEventListener(
 
                       <span class="muted">
                         Aguardando:
-                        ${item.area_pendente || '—'}
+                        ${
+                          item.area_pendente ||
+                          '—'
+                        }
                       </span>
 
                       ${
                         item.pendencia_proximo_passo
-                          ? `<br>${item.pendencia_proximo_passo}`
+
+                          ? `
+                            <br>
+                            ${item.pendencia_proximo_passo}
+                          `
+
                           : ''
                       }
 
                       ${
                         item.observacoes
-                          ? `<br><small>${item.observacoes}</small>`
+
+                          ? `
+                            <br>
+                            <small>
+                              ${item.observacoes}
+                            </small>
+                          `
+
                           : ''
                       }
 
                       ${
                         item.usuario_nome
-                          ? `<br><small>Alterado por: ${item.usuario_nome}</small>`
+
+                          ? `
+                            <br>
+                            <small>
+                              Alterado por:
+                              ${item.usuario_nome}
+                            </small>
+                          `
+
                           : ''
                       }
 
@@ -716,6 +730,7 @@ document.addEventListener(
                   `;
                 }
               )
+
               .join('');
 
         } else {
@@ -735,11 +750,8 @@ document.addEventListener(
     }
 
 
-    // ========================================================
-    // PERMISSÕES DO PROJETO
-    // ========================================================
-
     if (somenteLeitura) {
+
       const aviso =
         document.createElement(
           'div'
@@ -771,10 +783,6 @@ document.addEventListener(
         'none';
     }
 
-
-    // ========================================================
-    // AUTOMAÇÃO ETAPA
-    // ========================================================
 
     etapaSelect.addEventListener(
       'change',
@@ -813,7 +821,6 @@ document.addEventListener(
               'data_aprovacao'
             );
 
-
           if (
             campo &&
             !campo.value
@@ -831,10 +838,6 @@ document.addEventListener(
     );
 
 
-    // ========================================================
-    // PRAZO 90 DIAS
-    // ========================================================
-
     const campoAprovacao =
       form.elements.namedItem(
         'data_aprovacao'
@@ -845,15 +848,12 @@ document.addEventListener(
       'change',
       () => {
 
-        if (
-          !campoAprovacao.value
-        ) {
+        if (!campoAprovacao.value) {
 
           prazo90.value = '';
 
           return;
         }
-
 
         const [
           ano,
@@ -864,26 +864,23 @@ document.addEventListener(
             .split('-')
             .map(Number);
 
-
         const data =
           new Date(
             ano,
-            mes-1,
+            mes - 1,
             dia
           );
 
-
         data.setDate(
-          data.getDate()+90
+          data.getDate() + 90
         );
-
 
         const prazoAno =
           data.getFullYear();
 
         const prazoMes =
           String(
-            data.getMonth()+1
+            data.getMonth() + 1
           ).padStart(
             2,
             '0'
@@ -897,16 +894,11 @@ document.addEventListener(
             '0'
           );
 
-
         prazo90.value =
           `${prazoAno}-${prazoMes}-${prazoDia}`;
       }
     );
 
-
-    // ========================================================
-    // SALVAR
-    // ========================================================
 
     form.addEventListener(
       'submit',
@@ -914,11 +906,9 @@ document.addEventListener(
 
         event.preventDefault();
 
-
         if (somenteLeitura) {
           return;
         }
-
 
         try {
 
@@ -975,13 +965,13 @@ document.addEventListener(
 
           let resultado = {};
 
-
           try {
 
             resultado =
               await resposta.json();
 
           } catch {
+
             resultado = {};
           }
 
