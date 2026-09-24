@@ -15,8 +15,8 @@ body{
      foto LENVIE ao fundo mantendo a cor original do sistema */
   background-image:
     linear-gradient(
-   rgba(245, 247, 251, 0.68),
-    rgba(245, 247, 251, 0.68)
+   rgba(245, 247, 251, 0.60),
+    rgba(245, 247, 251, 0.60)
   ),
   url("/assets/lenvie-background.jpg");
 
