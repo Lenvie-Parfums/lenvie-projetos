@@ -1,291 +1,323 @@
-:root {
-  font-family: Inter, Arial, sans-serif;
-  color: #172033;
-  background: #f5f7fb;
+:root{
+  font-family:Inter,Arial,sans-serif;
+  color:#172033;
+  background:#f5f7fb
 }
 
-* {
-  box-sizing: border-box;
+*{
+  box-sizing:border-box
 }
 
-body {
-  margin: 0;
+body{
+  margin:0;
 
-  /* ADIÇÃO: fundo institucional LENVIE */
-  background-color: #f5f7fb;
+  /* ÚNICA ALTERAÇÃO:
+     foto LENVIE ao fundo mantendo a cor original do sistema */
   background-image:
     linear-gradient(
-      rgba(245, 247, 251, 0.86),
-      rgba(245, 247, 251, 0.86)
+      rgba(245,247,251,.88),
+      rgba(245,247,251,.88)
     ),
     url("/assets/lenvie-background.jpg");
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  background-attachment:fixed;
 }
 
-header {
-  background: #111827;
-  color: #fff;
-  padding: 18px 6%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
+
+/* =====================================================
+   HEADER ORIGINAL
+   ===================================================== */
+
+header{
+  background:#111827;
+  color:#fff;
+  padding:18px 6%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px
 }
 
-/* ADIÇÃO: imagem LENVIE no topo */
-header strong {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+
+/* =====================================================
+   ÚNICA ALTERAÇÃO NO TOPO
+   ADICIONA A IMAGEM LENVIE SEM ALTERAR O HEADER
+   ===================================================== */
+
+header strong{
+  display:flex;
+  align-items:center;
+  gap:14px;
 }
 
-header strong::before {
-  content: "";
-  display: block;
-  width: 230px;
-  height: 39px;
-  flex: 0 0 230px;
-  background-image: url("/assets/lenvie-topo.png");
-  background-size: contain;
-  background-position: left center;
-  background-repeat: no-repeat;
+
+/*
+  Imagem da LENVIE adicionada antes do texto
+  "LENVIE · Projetos"
+*/
+
+header strong::before{
+  content:"";
+
+  display:block;
+
+  width:145px;
+  height:44px;
+
+  flex-shrink:0;
+
+  background-image:url("/assets/lenvie-topo.png");
+  background-size:contain;
+  background-position:left center;
+  background-repeat:no-repeat;
 }
 
-header nav {
-  display: flex;
-  flex-wrap: wrap;
+
+/* =====================================================
+   DAQUI PARA BAIXO:
+   CSS ORIGINAL DO SEU ARQUIVO.
+   NADA FOI REDESENHADO.
+   ===================================================== */
+
+header nav{
+  display:flex;
+  flex-wrap:wrap
 }
 
-header a {
-  color: #fff;
-  text-decoration: none;
-  margin-left: 18px;
+header a{
+  color:#fff;
+  text-decoration:none;
+  margin-left:18px
 }
 
-.wrap {
-  max-width: 1280px;
-  margin: 28px auto;
-  padding: 0 20px;
+.wrap{
+  max-width:1280px;
+  margin:28px auto;
+  padding:0 20px
 }
 
-.page-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 16px;
+.page-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:16px
 }
 
-.page-head h1 {
-  margin-bottom: 4px;
+.page-head h1{
+  margin-bottom:4px
 }
 
-.cards {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+.cards{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px
 }
 
 .card,
-.panel {
-  background: #fff;
-  border-radius: 14px;
-  padding: 20px;
-  box-shadow: 0 4px 18px #0000000d;
+.panel{
+  background:#fff;
+  border-radius:14px;
+  padding:20px;
+  box-shadow:0 4px 18px #0000000d
 }
 
-.card b {
-  font-size: 32px;
-  display: block;
-  margin-top: 8px;
+.card b{
+  font-size:32px;
+  display:block;
+  margin-top:8px
 }
 
-.card small {
-  color: #64748b;
+.card small{
+  color:#64748b
 }
 
-.toolbar {
-  display: flex;
-  gap: 10px;
-  margin: 18px 0;
+.toolbar{
+  display:flex;
+  gap:10px;
+  margin:18px 0
 }
 
-.btn {
-  border: 0;
-  border-radius: 9px;
-  padding: 11px 15px;
-  background: #1f4e78;
-  color: white;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.btn{
+  border:0;
+  border-radius:9px;
+  padding:11px 15px;
+  background:#1f4e78;
+  color:white;
+  cursor:pointer;
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center
 }
 
-.secondary {
-  background: #e5e7eb;
-  color: #111827;
+.secondary{
+  background:#e5e7eb;
+  color:#111827
 }
 
-.table-scroll {
-  overflow: auto;
+.table-scroll{
+  overflow:auto
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:#fff
 }
 
 th,
-td {
-  padding: 12px;
-  border-bottom: 1px solid #e5e7eb;
-  text-align: left;
-  white-space: nowrap;
+td{
+  padding:12px;
+  border-bottom:1px solid #e5e7eb;
+  text-align:left;
+  white-space:nowrap
 }
 
-th {
-  font-size: 12px;
-  text-transform: uppercase;
-  color: #64748b;
+th{
+  font-size:12px;
+  text-transform:uppercase;
+  color:#64748b
 }
 
 input,
 select,
-textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: #fff;
+textarea{
+  width:100%;
+  padding:10px;
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  background:#fff
 }
 
-textarea {
-  min-height: 80px;
+textarea{
+  min-height:80px
 }
 
-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 700;
-  margin-bottom: 5px;
+label{
+  display:block;
+  font-size:13px;
+  font-weight:700;
+  margin-bottom:5px
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px
 }
 
-.full {
-  grid-column: 1 / -1;
+.full{
+  grid-column:1/-1
 }
 
 .pill,
-.flag {
-  padding: 5px 9px;
-  border-radius: 99px;
-  background: #e8eef5;
-  font-size: 12px;
-  display: inline-block;
+.flag{
+  padding:5px 9px;
+  border-radius:99px;
+  background:#e8eef5;
+  font-size:12px;
+  display:inline-block
 }
 
-.flag {
-  background: #fff2cc;
-  color: #694f00;
-  font-weight: 700;
+.flag{
+  background:#fff2cc;
+  color:#694f00;
+  font-weight:700
 }
 
-.muted {
-  color: #64748b;
+.muted{
+  color:#64748b
 }
 
-.history {
-  border-left: 3px solid #cbd5e1;
-  padding-left: 15px;
-  margin: 16px 0;
+.history{
+  border-left:3px solid #cbd5e1;
+  padding-left:15px;
+  margin:16px 0
 }
 
-.split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin: 20px 0;
+.split{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  margin:20px 0
 }
 
-.bar-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  border-bottom: 1px solid #eef2f7;
-  padding: 9px 0;
+.bar-row{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  border-bottom:1px solid #eef2f7;
+  padding:9px 0
 }
 
-.bar-row:last-child {
-  border-bottom: 0;
+.bar-row:last-child{
+  border-bottom:0
 }
 
-.summary-line {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-  color: #64748b;
+.summary-line{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+  color:#64748b
 }
 
-a {
-  color: #1f4e78;
+a{
+  color:#1f4e78
 }
 
-h2 {
-  margin-top: 28px;
+h2{
+  margin-top:28px
 }
 
-@media (max-width: 800px) {
+
+/* =====================================================
+   RESPONSIVIDADE ORIGINAL
+   ===================================================== */
+
+@media(max-width:800px){
+
   .cards,
   .grid,
-  .split {
-    grid-template-columns: 1fr 1fr;
+  .split{
+    grid-template-columns:1fr 1fr
   }
 
-  .page-head {
-    align-items: flex-start;
-    flex-direction: column;
+  .page-head{
+    align-items:flex-start;
+    flex-direction:column
   }
 
-  table {
-    font-size: 12px;
+  table{
+    font-size:12px
   }
+
 }
 
-@media (max-width: 520px) {
+
+@media(max-width:520px){
+
   .cards,
   .grid,
-  .split {
-    grid-template-columns: 1fr;
+  .split{
+    grid-template-columns:1fr
   }
 
-  header {
-    align-items: flex-start;
-    flex-direction: column;
+  header{
+    align-items:flex-start;
+    flex-direction:column
   }
 
-  header a {
-    margin: 0 14px 0 0;
+  header a{
+    margin:0 14px 0 0
   }
 
-  .toolbar {
-    flex-direction: column;
+  .toolbar{
+    flex-direction:column
   }
 
-  header strong::before {
-    width: 190px;
-    height: 32px;
-    flex: 0 0 190px;
-  }
 }
