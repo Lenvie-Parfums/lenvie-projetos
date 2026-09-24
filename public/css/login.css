@@ -1,0 +1,108 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: Inter, Arial, sans-serif;
+  color: #172033;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background-image:
+    linear-gradient(
+      rgba(17, 24, 39, 0.42),
+      rgba(17, 24, 39, 0.42)
+    ),
+    url("/assets/lenvie-background.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.login-card {
+  width: min(100%, 430px);
+  padding: 32px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
+}
+
+.login-brand {
+  margin-bottom: 26px;
+  text-align: center;
+}
+
+.login-brand img {
+  display: block;
+  width: min(230px, 80%);
+  max-height: 70px;
+  margin: 0 auto 16px;
+  object-fit: contain;
+}
+
+.login-brand h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.login-brand p {
+  margin: 7px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.login-form {
+  display: grid;
+  gap: 16px;
+}
+
+.login-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #fff;
+  font: inherit;
+}
+
+.login-form input:focus {
+  outline: 2px solid rgba(31, 78, 120, 0.18);
+  border-color: #1f4e78;
+}
+
+.login-button {
+  width: 100%;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 9px;
+  background: #1f4e78;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.login-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.login-error {
+  min-height: 20px;
+  margin: 0;
+  color: #b42318;
+  font-size: 13px;
+  text-align: center;
+}

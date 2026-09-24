@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  >
+
+  <title>Usuários | LENVIE</title>
+
+  <link
+    rel="stylesheet"
+    href="/css/style.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="/css/auth.css"
+  >
+</head>
+
+<body>
+  <header>
+    <a
+      href="/"
+      class="brand"
+    >
+      <span>LENVIE</span>
+      <small>Projetos</small>
+    </a>
+
+    <nav>
+      <a href="/">
+        Dashboard
+      </a>
+
+      <a href="/projetos.html">
+        Projetos
+      </a>
+
+      <a
+        href="/projeto.html"
+        data-permission="criar"
+      >
+        Novo Projeto
+      </a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <div class="page-head">
+      <div>
+        <h1>Usuários e Permissões</h1>
+
+        <p class="muted">
+          Cadastre acessos e defina o que cada perfil pode alterar.
+        </p>
+      </div>
+    </div>
+
+    <section class="panel">
+      <h2>Novo usuário</h2>
+
+      <form
+        id="formUsuario"
+        class="users-grid"
+      >
+        <div>
+          <label>Nome</label>
+          <input
+            name="nome"
+            required
+          >
+        </div>
+
+        <div>
+          <label>E-mail</label>
+          <input
+            name="email"
+            type="email"
+            required
+          >
+        </div>
+
+        <div>
+          <label>Senha inicial</label>
+          <input
+            name="senha"
+            type="password"
+            minlength="8"
+            required
+          >
+        </div>
+
+        <div>
+          <label>Perfil</label>
+          <select
+            name="perfil"
+            required
+          >
+            <option value="visualizador">
+              Visualizador
+            </option>
+
+            <option value="editor">
+              Editor
+            </option>
+
+            <option value="gestor">
+              Gestor
+            </option>
+
+            <option value="administrador">
+              Administrador
+            </option>
+          </select>
+        </div>
+
+        <button
+          type="submit"
+          class="btn"
+        >
+          Criar usuário
+        </button>
+      </form>
+
+      <p
+        id="mensagemUsuario"
+        class="muted"
+      ></p>
+    </section>
+
+    <h2>Usuários cadastrados</h2>
+
+    <div class="panel table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>Perfil</th>
+            <th>Status</th>
+            <th>Último acesso</th>
+            <th>Nova senha</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+
+        <tbody id="listaUsuarios"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/usuarios.js"></script>
+</body>
+</html>

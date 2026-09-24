@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  >
+
+  <title>Login | LENVIE Projetos</title>
+
+  <link
+    rel="stylesheet"
+    href="/css/login.css"
+  >
+</head>
+
+<body>
+  <main class="login-card">
+    <div class="login-brand">
+      <img
+        src="/assets/lenvie-topo.png"
+        alt="LENVIE"
+      >
+
+      <h1>Gestão de Projetos</h1>
+
+      <p>
+        Acesse com seu usuário autorizado.
+      </p>
+    </div>
+
+    <form
+      id="loginForm"
+      class="login-form"
+    >
+      <div>
+        <label for="email">
+          E-mail
+        </label>
+
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autocomplete="username"
+          required
+          autofocus
+        >
+      </div>
+
+      <div>
+        <label for="senha">
+          Senha
+        </label>
+
+        <input
+          id="senha"
+          name="senha"
+          type="password"
+          autocomplete="current-password"
+          required
+        >
+      </div>
+
+      <p
+        id="loginErro"
+        class="login-error"
+      ></p>
+
+      <button
+        id="loginButton"
+        type="submit"
+        class="login-button"
+      >
+        Entrar
+      </button>
+    </form>
+  </main>
+
+  <script src="/js/login.js"></script>
+</body>
+</html>

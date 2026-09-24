@@ -1,0 +1,116 @@
+/* =====================================================
+   AUTENTICAÇÃO / CABEÇALHO DO USUÁRIO
+   Complementa o style.css sem substituir o visual atual.
+===================================================== */
+
+.header-auth {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 18px;
+}
+
+.header-auth-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+}
+
+.header-auth-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.header-auth-profile {
+  margin-top: 3px;
+  font-size: 11px;
+  color: #cbd5e1;
+  text-transform: capitalize;
+}
+
+.header-auth .btn-logout {
+  width: auto;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 7px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+
+.header-auth .btn-logout:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.auth-admin-link {
+  color: #fff;
+}
+
+.readonly-notice {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid #d7dee8;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #475569;
+}
+
+.users-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 180px auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.user-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-status input {
+  width: auto;
+}
+
+.user-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.user-actions .btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 950px) {
+  header {
+    flex-wrap: wrap;
+  }
+
+  .header-auth {
+    width: 100%;
+    justify-content: flex-end;
+    margin-left: 0;
+  }
+
+  .users-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .header-auth {
+    justify-content: flex-start;
+  }
+
+  .header-auth-info {
+    align-items: flex-start;
+  }
+
+  .users-grid {
+    grid-template-columns: 1fr;
+  }
+}
