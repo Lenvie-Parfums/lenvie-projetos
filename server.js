@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const ExcelJS = require('exceljs');
+const crypto = require('crypto');
 const { Pool } = require('pg');
 
 const app = express();
@@ -15,8 +16,1088 @@ const pool = new Pool({
 });
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
+app.set('trust proxy', 1);
+
+const PUBLIC_DIR =
+  path.join(__dirname, 'public');
+
+app.use(
+  '/css',
+  express.static(
+    path.join(PUBLIC_DIR, 'css')
+  )
+);
+
+app.use(
+  '/js',
+  express.static(
+    path.join(PUBLIC_DIR, 'js')
+  )
+);
+
+app.use(
+  '/assets',
+  express.static(
+    path.join(PUBLIC_DIR, 'assets')
+  )
+);
+
+
+// ============================================================
+// AUTENTICAÇÃO E PERMISSÕES
+// ============================================================
+
+const COOKIE_SESSAO =
+  'lenvie_session';
+
+const DURACAO_SESSAO_HORAS =
+  8;
+
+const PERFIS = [
+  'administrador',
+  'gestor',
+  'editor',
+  'visualizador'
+];
+
+const PERMISSOES = {
+  administrador: {
+    criar: true,
+    editar: true,
+    exportar: true,
+    gerenciar_usuarios: true
+  },
+  gestor: {
+    criar: true,
+    editar: true,
+    exportar: true,
+    gerenciar_usuarios: false
+  },
+  editor: {
+    criar: false,
+    editar: true,
+    exportar: true,
+    gerenciar_usuarios: false
+  },
+  visualizador: {
+    criar: false,
+    editar: false,
+    exportar: true,
+    gerenciar_usuarios: false
+  }
+};
+
+function normalizarEmail(valor) {
+  return String(valor || '')
+    .trim()
+    .toLowerCase();
+}
+
+function parseCookies(req) {
+  const cabecalho =
+    req.headers.cookie || '';
+
+  return Object.fromEntries(
+    cabecalho
+      .split(';')
+      .map(item => item.trim())
+      .filter(Boolean)
+      .map(item => {
+        const indice =
+          item.indexOf('=');
+
+        if (indice < 0) {
+          return [item, ''];
+        }
+
+        return [
+          decodeURIComponent(
+            item.slice(0, indice)
+          ),
+          decodeURIComponent(
+            item.slice(indice + 1)
+          )
+        ];
+      })
+  );
+}
+
+function hashToken(token) {
+  return crypto
+    .createHash('sha256')
+    .update(token)
+    .digest('hex');
+}
+
+function hashSenha(senha) {
+  const salt =
+    crypto
+      .randomBytes(16)
+      .toString('hex');
+
+  const hash =
+    crypto
+      .scryptSync(
+        String(senha),
+        salt,
+        64
+      )
+      .toString('hex');
+
+  return `scrypt$${salt}$${hash}`;
+}
+
+function validarSenha(
+  senha,
+  senhaHash
+) {
+  try {
+    const [
+      algoritmo,
+      salt,
+      hashSalvo
+    ] =
+      String(senhaHash || '')
+        .split('$');
+
+    if (
+      algoritmo !== 'scrypt' ||
+      !salt ||
+      !hashSalvo
+    ) {
+      return false;
+    }
+
+    const hashInformado =
+      crypto.scryptSync(
+        String(senha),
+        salt,
+        64
+      );
+
+    const hashBanco =
+      Buffer.from(
+        hashSalvo,
+        'hex'
+      );
+
+    return (
+      hashBanco.length ===
+        hashInformado.length &&
+      crypto.timingSafeEqual(
+        hashBanco,
+        hashInformado
+      )
+    );
+
+  } catch {
+    return false;
+  }
+}
+
+function cookieSessao(
+  token,
+  limpar = false
+) {
+  const partes = [
+    `${COOKIE_SESSAO}=${
+      limpar
+        ? ''
+        : encodeURIComponent(token)
+    }`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax'
+  ];
+
+  if (
+    process.env.NODE_ENV ===
+    'production'
+  ) {
+    partes.push('Secure');
+  }
+
+  partes.push(
+    limpar
+      ? 'Max-Age=0'
+      : `Max-Age=${
+          DURACAO_SESSAO_HORAS *
+          60 *
+          60
+        }`
+  );
+
+  return partes.join('; ');
+}
+
+function permissoesDoPerfil(perfil) {
+  return (
+    PERMISSOES[perfil] ||
+    PERMISSOES.visualizador
+  );
+}
+
+async function carregarUsuario(req) {
+  const token =
+    parseCookies(req)[COOKIE_SESSAO];
+
+  if (!token) {
+    return null;
+  }
+
+  const q =
+    await pool.query(
+      `
+      SELECT
+        u.id,
+        u.nome,
+        u.email,
+        u.perfil,
+        u.ativo
+      FROM sessoes s
+      JOIN usuarios u
+        ON u.id=s.usuario_id
+      WHERE
+        s.token_hash=$1
+        AND s.expira_em>NOW()
+        AND u.ativo=TRUE
+      LIMIT 1
+      `,
+      [hashToken(token)]
+    );
+
+  return q.rows[0] || null;
+}
+
+async function exigirLogin(
+  req,
+  res,
+  next
+) {
+  try {
+    const usuario =
+      await carregarUsuario(req);
+
+    if (!usuario) {
+      return res
+        .status(401)
+        .json({
+          erro:
+            'Sessão expirada ou usuário não autenticado.'
+        });
+    }
+
+    req.usuario =
+      usuario;
+
+    next();
+
+  } catch (erro) {
+    next(erro);
+  }
+}
+
+function exigirPermissao(permissao) {
+  return (
+    req,
+    res,
+    next
+  ) => {
+    const permissoes =
+      permissoesDoPerfil(
+        req.usuario?.perfil
+      );
+
+    if (!permissoes[permissao]) {
+      return res
+        .status(403)
+        .json({
+          erro:
+            'Você não possui permissão para esta ação.'
+        });
+    }
+
+    next();
+  };
+}
+
+async function paginaProtegida(
+  req,
+  res,
+  arquivo,
+  opcoes = {}
+) {
+  try {
+    const usuario =
+      await carregarUsuario(req);
+
+    if (!usuario) {
+      return res.redirect(
+        '/login.html'
+      );
+    }
+
+    const permissoes =
+      permissoesDoPerfil(
+        usuario.perfil
+      );
+
+    if (
+      opcoes.apenasAdmin &&
+      !permissoes.gerenciar_usuarios
+    ) {
+      return res.redirect('/');
+    }
+
+    if (
+      opcoes.novoProjeto &&
+      !req.query.id &&
+      !permissoes.criar
+    ) {
+      return res.redirect(
+        '/projetos.html'
+      );
+    }
+
+    return res.sendFile(
+      path.join(
+        PUBLIC_DIR,
+        arquivo
+      )
+    );
+
+  } catch (erro) {
+    console.error(erro);
+
+    return res
+      .status(500)
+      .send('Erro ao validar acesso.');
+  }
+}
+
+async function garantirEstruturaAuth() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS usuarios (
+      id SERIAL PRIMARY KEY,
+      nome VARCHAR(120) NOT NULL,
+      email VARCHAR(180) UNIQUE NOT NULL,
+      senha_hash TEXT NOT NULL,
+      perfil VARCHAR(30) NOT NULL DEFAULT 'visualizador',
+      ativo BOOLEAN NOT NULL DEFAULT TRUE,
+      criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      ultimo_acesso TIMESTAMPTZ
+    );
+
+    CREATE TABLE IF NOT EXISTS sessoes (
+      id BIGSERIAL PRIMARY KEY,
+      usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+      token_hash VARCHAR(64) UNIQUE NOT NULL,
+      criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expira_em TIMESTAMPTZ NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_sessoes_token
+      ON sessoes(token_hash);
+
+    CREATE INDEX IF NOT EXISTS idx_sessoes_expira
+      ON sessoes(expira_em);
+
+    CREATE TABLE IF NOT EXISTS auditoria (
+      id BIGSERIAL PRIMARY KEY,
+      usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+      usuario_nome VARCHAR(120),
+      acao VARCHAR(80) NOT NULL,
+      entidade VARCHAR(80),
+      entidade_id INTEGER,
+      detalhes JSONB,
+      criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    ALTER TABLE IF EXISTS historico_etapas
+      ADD COLUMN IF NOT EXISTS usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL;
+
+    ALTER TABLE IF EXISTS historico_etapas
+      ADD COLUMN IF NOT EXISTS usuario_nome VARCHAR(120);
+  `);
+
+  await pool.query(`
+    DELETE FROM sessoes
+    WHERE expira_em<=NOW()
+  `);
+
+  const total =
+    await pool.query(`
+      SELECT COUNT(*)::int total
+      FROM usuarios
+    `);
+
+  if (total.rows[0].total === 0) {
+    const email =
+      normalizarEmail(
+        process.env.ADMIN_EMAIL
+      );
+
+    const senha =
+      process.env.ADMIN_PASSWORD;
+
+    const nome =
+      process.env.ADMIN_NAME ||
+      'Administrador';
+
+    if (email && senha) {
+      if (senha.length < 8) {
+        throw new Error(
+          'ADMIN_PASSWORD deve possuir pelo menos 8 caracteres.'
+        );
+      }
+
+      await pool.query(
+        `
+        INSERT INTO usuarios (
+          nome,
+          email,
+          senha_hash,
+          perfil,
+          ativo
+        )
+        VALUES ($1,$2,$3,'administrador',TRUE)
+        `,
+        [
+          nome,
+          email,
+          hashSenha(senha)
+        ]
+      );
+
+      console.log(
+        `Usuário administrador inicial criado: ${email}`
+      );
+
+    } else {
+      console.warn(
+        'Nenhum usuário cadastrado. Defina ADMIN_EMAIL e ADMIN_PASSWORD no ambiente para criar o administrador inicial.'
+      );
+    }
+  }
+}
+
+async function registrarAuditoria(
+  client,
+  req,
+  acao,
+  entidade,
+  entidadeId,
+  detalhes = {}
+) {
+  await client.query(
+    `
+    INSERT INTO auditoria (
+      usuario_id,
+      usuario_nome,
+      acao,
+      entidade,
+      entidade_id,
+      detalhes
+    )
+    VALUES ($1,$2,$3,$4,$5,$6::jsonb)
+    `,
+    [
+      req.usuario?.id || null,
+      req.usuario?.nome || null,
+      acao,
+      entidade,
+      entidadeId || null,
+      JSON.stringify(detalhes || {})
+    ]
+  );
+}
+
+// ============================================================
+// PÁGINAS
+// ============================================================
+
+app.get(
+  '/login.html',
+  async (req, res, next) => {
+    try {
+      const usuario =
+        await carregarUsuario(req);
+
+      if (usuario) {
+        return res.redirect('/');
+      }
+
+      return res.sendFile(
+        path.join(
+          PUBLIC_DIR,
+          'login.html'
+        )
+      );
+
+    } catch (erro) {
+      next(erro);
+    }
+  }
+);
+
+app.get(
+  '/',
+  (req, res) =>
+    paginaProtegida(
+      req,
+      res,
+      'index.html'
+    )
+);
+
+app.get(
+  '/index.html',
+  (req, res) =>
+    paginaProtegida(
+      req,
+      res,
+      'index.html'
+    )
+);
+
+app.get(
+  '/projetos.html',
+  (req, res) =>
+    paginaProtegida(
+      req,
+      res,
+      'projetos.html'
+    )
+);
+
+app.get(
+  '/projeto.html',
+  (req, res) =>
+    paginaProtegida(
+      req,
+      res,
+      'projeto.html',
+      {
+        novoProjeto: true
+      }
+    )
+);
+
+app.get(
+  '/usuarios.html',
+  (req, res) =>
+    paginaProtegida(
+      req,
+      res,
+      'usuarios.html',
+      {
+        apenasAdmin: true
+      }
+    )
+);
+
+// ============================================================
+// API DE AUTENTICAÇÃO
+// ============================================================
+
+app.post(
+  '/api/auth/login',
+  async (req, res, next) => {
+    try {
+      const email =
+        normalizarEmail(
+          req.body.email
+        );
+
+      const senha =
+        String(
+          req.body.senha || ''
+        );
+
+      if (!email || !senha) {
+        return res
+          .status(400)
+          .json({
+            erro:
+              'Informe e-mail e senha.'
+          });
+      }
+
+      const q =
+        await pool.query(
+          `
+          SELECT *
+          FROM usuarios
+          WHERE email=$1
+          LIMIT 1
+          `,
+          [email]
+        );
+
+      const usuario =
+        q.rows[0];
+
+      if (
+        !usuario ||
+        !usuario.ativo ||
+        !validarSenha(
+          senha,
+          usuario.senha_hash
+        )
+      ) {
+        return res
+          .status(401)
+          .json({
+            erro:
+              'E-mail ou senha inválidos.'
+          });
+      }
+
+      const token =
+        crypto
+          .randomBytes(32)
+          .toString('hex');
+
+      await pool.query(
+        `
+        INSERT INTO sessoes (
+          usuario_id,
+          token_hash,
+          expira_em
+        )
+        VALUES (
+          $1,
+          $2,
+          NOW() + ($3::int * INTERVAL '1 hour')
+        )
+        `,
+        [
+          usuario.id,
+          hashToken(token),
+          DURACAO_SESSAO_HORAS
+        ]
+      );
+
+      await pool.query(
+        `
+        UPDATE usuarios
+        SET ultimo_acesso=NOW()
+        WHERE id=$1
+        `,
+        [usuario.id]
+      );
+
+      res.setHeader(
+        'Set-Cookie',
+        cookieSessao(token)
+      );
+
+      return res.json({
+        id: usuario.id,
+        nome: usuario.nome,
+        email: usuario.email,
+        perfil: usuario.perfil,
+        permissoes:
+          permissoesDoPerfil(
+            usuario.perfil
+          )
+      });
+
+    } catch (erro) {
+      next(erro);
+    }
+  }
+);
+
+app.post(
+  '/api/auth/logout',
+  async (req, res, next) => {
+    try {
+      const token =
+        parseCookies(req)[COOKIE_SESSAO];
+
+      if (token) {
+        await pool.query(
+          `
+          DELETE FROM sessoes
+          WHERE token_hash=$1
+          `,
+          [hashToken(token)]
+        );
+      }
+
+      res.setHeader(
+        'Set-Cookie',
+        cookieSessao('', true)
+      );
+
+      return res.json({
+        ok: true
+      });
+
+    } catch (erro) {
+      next(erro);
+    }
+  }
+);
+
+app.get(
+  '/api/auth/me',
+  exigirLogin,
+  (req, res) => {
+    res.json({
+      ...req.usuario,
+      permissoes:
+        permissoesDoPerfil(
+          req.usuario.perfil
+        )
+    });
+  }
+);
+
+app.use(
+  '/api',
+  exigirLogin
+);
+
+app.use(
+  '/relatorios',
+  exigirLogin
+);
+
+// ============================================================
+// USUÁRIOS
+// ============================================================
+
+app.get(
+  '/api/usuarios',
+  exigirPermissao(
+    'gerenciar_usuarios'
+  ),
+  async (req, res, next) => {
+    try {
+      const q =
+        await pool.query(`
+          SELECT
+            id,
+            nome,
+            email,
+            perfil,
+            ativo,
+            criado_em,
+            ultimo_acesso
+          FROM usuarios
+          ORDER BY nome, email
+        `);
+
+      res.json(q.rows);
+
+    } catch (erro) {
+      next(erro);
+    }
+  }
+);
+
+app.post(
+  '/api/usuarios',
+  exigirPermissao(
+    'gerenciar_usuarios'
+  ),
+  async (req, res, next) => {
+    try {
+      const nome =
+        String(
+          req.body.nome || ''
+        ).trim();
+
+      const email =
+        normalizarEmail(
+          req.body.email
+        );
+
+      const senha =
+        String(
+          req.body.senha || ''
+        );
+
+      const perfil =
+        String(
+          req.body.perfil ||
+          'visualizador'
+        );
+
+      if (
+        !nome ||
+        !email ||
+        !senha
+      ) {
+        return res
+          .status(400)
+          .json({
+            erro:
+              'Nome, e-mail e senha são obrigatórios.'
+          });
+      }
+
+      if (senha.length < 8) {
+        return res
+          .status(400)
+          .json({
+            erro:
+              'A senha deve possuir pelo menos 8 caracteres.'
+          });
+      }
+
+      if (!PERFIS.includes(perfil)) {
+        return res
+          .status(400)
+          .json({
+            erro:
+              'Perfil inválido.'
+          });
+      }
+
+      const q =
+        await pool.query(
+          `
+          INSERT INTO usuarios (
+            nome,
+            email,
+            senha_hash,
+            perfil,
+            ativo
+          )
+          VALUES ($1,$2,$3,$4,TRUE)
+          RETURNING
+            id,
+            nome,
+            email,
+            perfil,
+            ativo,
+            criado_em,
+            ultimo_acesso
+          `,
+          [
+            nome,
+            email,
+            hashSenha(senha),
+            perfil
+          ]
+        );
+
+      await registrarAuditoria(
+        pool,
+        req,
+        'CRIAR_USUARIO',
+        'usuario',
+        q.rows[0].id,
+        {
+          email,
+          perfil
+        }
+      );
+
+      res
+        .status(201)
+        .json(q.rows[0]);
+
+    } catch (erro) {
+      if (erro.code === '23505') {
+        return res
+          .status(409)
+          .json({
+            erro:
+              'Já existe um usuário com este e-mail.'
+          });
+      }
+
+      next(erro);
+    }
+  }
+);
+
+app.put(
+  '/api/usuarios/:id',
+  exigirPermissao(
+    'gerenciar_usuarios'
+  ),
+  async (req, res, next) => {
+    try {
+      const id =
+        Number(req.params.id);
+
+      if (!Number.isInteger(id)) {
+        return res
+          .status(400)
+          .json({
+            erro:
+              'Usuário inválido.'
+          });
+      }
+
+      const atual =
+        await pool.query(
+          `
+          SELECT *
+          FROM usuarios
+          WHERE id=$1
+          `,
+          [id]
+        );
+
+      if (!atual.rowCount) {
+        return res
+          .status(404)
+          .json({
+            erro:
+              'Usuário não encontrado.'
+          });
+      }
+
+      const antigo =
+        atual.rows[0];
+
+      const nome =
+        String(
+          req.body.nome ??
+          antigo.nome
+        ).trim();
+
+      const email =
+        normalizarEmail(
+          req.body.email ??
+          antigo.email
+        );
+
+      const perfil =
+        String(
+          req.body.perfil ??
+          antigo.perfil
+        );
+
+      const ativo =
+        req.body.ativo === undefined
+          ? antigo.ativo
+          : Boolean(req.body.ativo);
+
+      const senha =
+        String(
+          req.body.senha || ''
+        );
+
+      if (!PERFIS.includes(perfil)) {
+        return res
+          .status(400)
+          .json({
+            erro:
+              'Perfil inválido.'
+          });
+      }
+
+      if (
+        id === req.usuario.id &&
+        (!ativo ||
+          perfil !== 'administrador')
+      ) {
+        return res
+          .status(400)
+          .json({
+            erro:
+              'Você não pode desativar ou remover seu próprio perfil de administrador.'
+          });
+      }
+
+      if (
+        senha &&
+        senha.length < 8
+      ) {
+        return res
+          .status(400)
+          .json({
+            erro:
+              'A nova senha deve possuir pelo menos 8 caracteres.'
+          });
+      }
+
+      const senhaHash =
+        senha
+          ? hashSenha(senha)
+          : antigo.senha_hash;
+
+      const q =
+        await pool.query(
+          `
+          UPDATE usuarios
+          SET
+            nome=$1,
+            email=$2,
+            perfil=$3,
+            ativo=$4,
+            senha_hash=$5,
+            atualizado_em=NOW()
+          WHERE id=$6
+          RETURNING
+            id,
+            nome,
+            email,
+            perfil,
+            ativo,
+            criado_em,
+            ultimo_acesso
+          `,
+          [
+            nome,
+            email,
+            perfil,
+            ativo,
+            senhaHash,
+            id
+          ]
+        );
+
+      if (!ativo || senha) {
+        await pool.query(
+          `
+          DELETE FROM sessoes
+          WHERE usuario_id=$1
+          `,
+          [id]
+        );
+      }
+
+      await registrarAuditoria(
+        pool,
+        req,
+        'ATUALIZAR_USUARIO',
+        'usuario',
+        id,
+        {
+          email,
+          perfil,
+          ativo,
+          senha_alterada:
+            Boolean(senha)
+        }
+      );
+
+      res.json(q.rows[0]);
+
+    } catch (erro) {
+      if (erro.code === '23505') {
+        return res
+          .status(409)
+          .json({
+            erro:
+              'Já existe um usuário com este e-mail.'
+          });
+      }
+
+      next(erro);
+    }
+  }
+);
 
 // ============================================================
 // CONFIGURAÇÕES
@@ -729,6 +1810,9 @@ app.get(
 
 app.post(
   '/api/projetos',
+  exigirPermissao(
+    'criar'
+  ),
   async (req, res, next) => {
 
     const c =
@@ -910,7 +1994,9 @@ app.post(
           area_pendente,
           situacao,
           pendencia_proximo_passo,
-          observacoes
+          observacoes,
+          usuario_id,
+          usuario_nome
 
         )
 
@@ -920,15 +2006,33 @@ app.post(
           $3,
           'Projeto cadastrado',
           $4,
-          'Cadastro inicial'
+          'Cadastro inicial',
+          $5,
+          $6
         )
         `,
         [
           p.rows[0].id,
           p.rows[0].etapa_atual,
           p.rows[0].area_pendente,
-          p.rows[0].proxima_acao
+          p.rows[0].proxima_acao,
+          req.usuario.id,
+          req.usuario.nome
         ]
+      );
+
+
+      await registrarAuditoria(
+        c,
+        req,
+        'CRIAR_PROJETO',
+        'projeto',
+        p.rows[0].id,
+        {
+          codigo: p.rows[0].codigo,
+          cliente: p.rows[0].cliente,
+          nome: p.rows[0].nome
+        }
       );
 
 
@@ -963,6 +2067,9 @@ app.post(
 
 app.put(
   '/api/projetos/:id',
+  exigirPermissao(
+    'editar'
+  ),
   async (req, res, next) => {
 
     const c =
@@ -1223,9 +2330,10 @@ app.put(
         );
 
 
-      if (mudou) {
+      const detalhes = [];
 
-        const detalhes = [];
+
+      if (mudou) {
 
 
         if (
@@ -1296,7 +2404,9 @@ app.put(
             area_pendente,
             situacao,
             pendencia_proximo_passo,
-            observacoes
+            observacoes,
+            usuario_id,
+            usuario_nome
 
           )
 
@@ -1306,7 +2416,9 @@ app.put(
             $3,
             $4,
             $5,
-            $6
+            $6,
+            $7,
+            $8
           )
           `,
           [
@@ -1318,10 +2430,28 @@ app.put(
 
             b.movimentacao_observacao ||
             detalhes.join(' | ') ||
-            'Atualização do projeto'
+            'Atualização do projeto',
+            req.usuario.id,
+            req.usuario.nome
           ]
         );
       }
+
+
+      await registrarAuditoria(
+        c,
+        req,
+        'ATUALIZAR_PROJETO',
+        'projeto',
+        Number(req.params.id),
+        {
+          codigo: o.codigo,
+          alteracoes:
+            detalhes.length
+              ? detalhes
+              : ['Dados gerais atualizados']
+        }
+      );
 
 
       await c.query(
@@ -1355,6 +2485,9 @@ app.put(
 
 app.get(
   '/api/relatorios/projetos.xlsx',
+  exigirPermissao(
+    'exportar'
+  ),
   async (req, res, next) => {
 
     try {
@@ -1883,6 +3016,9 @@ app.get(
 
 app.get(
   '/relatorios/projetos.pdf',
+  exigirPermissao(
+    'exportar'
+  ),
   async (req, res, next) => {
 
     try {
@@ -2501,10 +3637,26 @@ const PORT =
   3000;
 
 
-app.listen(
-  PORT,
-  () =>
-    console.log(
-      `LENVIE Projetos em http://localhost:${PORT}`
-    )
-);
+async function iniciarServidor() {
+  try {
+    await garantirEstruturaAuth();
+
+    app.listen(
+      PORT,
+      () =>
+        console.log(
+          `LENVIE Projetos em http://localhost:${PORT}`
+        )
+    );
+
+  } catch (erro) {
+    console.error(
+      'Falha ao iniciar o servidor:',
+      erro
+    );
+
+    process.exit(1);
+  }
+}
+
+iniciarServidor();

@@ -14,6 +14,35 @@ document.addEventListener(
       Boolean(projetoId);
 
 
+    const usuario =
+      await window.LENVIE_AUTH.ready;
+
+    const podeCriar =
+      Boolean(
+        usuario.permissoes?.criar
+      );
+
+    const podeEditar =
+      Boolean(
+        usuario.permissoes?.editar
+      );
+
+    const somenteLeitura =
+      modoEdicao &&
+      !podeEditar;
+
+
+    if (
+      !modoEdicao &&
+      !podeCriar
+    ) {
+      window.location.href =
+        '/projetos.html';
+
+      return;
+    }
+
+
     const form =
       document.getElementById(
         'form'
@@ -677,6 +706,12 @@ document.addEventListener(
                           : ''
                       }
 
+                      ${
+                        item.usuario_nome
+                          ? `<br><small>Alterado por: ${item.usuario_nome}</small>`
+                          : ''
+                      }
+
                     </div>
                   `;
                 }
@@ -697,6 +732,43 @@ document.addEventListener(
           `Não foi possível carregar o projeto.\n\n${erro.message}`
         );
       }
+    }
+
+
+    // ========================================================
+    // PERMISSÕES DO PROJETO
+    // ========================================================
+
+    if (somenteLeitura) {
+      const aviso =
+        document.createElement(
+          'div'
+        );
+
+      aviso.className =
+        'readonly-notice';
+
+      aviso.textContent =
+        'Seu perfil possui acesso somente para visualização deste projeto.';
+
+      form.parentNode.insertBefore(
+        aviso,
+        form
+      );
+
+      Array.from(
+        form.elements
+      ).forEach(
+        campo => {
+          campo.disabled = true;
+        }
+      );
+
+      btnSalvar.style.display =
+        'none';
+
+      blocoMovimentacao.style.display =
+        'none';
     }
 
 
@@ -841,6 +913,11 @@ document.addEventListener(
       async event => {
 
         event.preventDefault();
+
+
+        if (somenteLeitura) {
+          return;
+        }
 
 
         try {
