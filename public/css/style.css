@@ -1,1002 +1,837 @@
+/* =========================================================
+   LENVIE PROJETOS
+   Identidade visual institucional
+========================================================= */
+
 :root {
-  font-family:
-    Inter,
-    Arial,
-    sans-serif;
+  --verde-lenvie: #6f8065;
+  --verde-lenvie-escuro: #55664d;
+  --verde-lenvie-claro: #aebca7;
 
-  color: #1c281d;
+  --texto: #172033;
+  --texto-secundario: #687268;
 
-  background: #f2f4ef;
+  --fundo: #f5f6f2;
+  --branco: #ffffff;
 
-  --verde: #66745c;
-  --verde-escuro: #354133;
-  --verde-claro: #dfe5da;
-  --creme: #f7f5ee;
-  --borda: #d8dfd4;
-  --texto-suave: #687467;
+  --borda: #dce2d8;
+
+  --amarelo: #fff0b8;
+  --amarelo-texto: #796000;
+
+  --vermelho: #f8d7da;
+  --vermelho-texto: #842029;
+
+  --verde-status: #e5ece2;
+
+  --sombra:
+    0 10px 30px rgba(32, 45, 28, 0.07);
 }
 
+
+/* =========================================================
+   RESET
+========================================================= */
 
 * {
   box-sizing: border-box;
 }
 
-
-html {
+html,
+body {
+  margin: 0;
   min-height: 100%;
 }
 
-
 body {
-  margin: 0;
-  min-height: 100vh;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+  color: var(--texto);
+  background-color: var(--fundo);
+
   position: relative;
-  background: #f4f5f1;
 }
 
 
-/* ============================================================
-   FUNDO LENVIE
-============================================================ */
+/* =========================================================
+   BACKGROUND LENVIE
+========================================================= */
 
 body::before {
-
   content: "";
 
   position: fixed;
-
   inset: 0;
 
   z-index: -2;
 
   background-image:
-    url('/img/lenvie-fundo.jpg');
+    linear-gradient(
+      rgba(247, 248, 244, 0.88),
+      rgba(247, 248, 244, 0.94)
+    ),
+    url("/assets/lenvie-background.jpg");
 
   background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 
-  background-position:
-    center center;
+  filter: saturate(0.72);
 
-  background-repeat:
-    no-repeat;
-
-  opacity: .12;
-
-  filter:
-    saturate(.75)
-    brightness(1.15);
+  transform: scale(1.02);
 }
 
 
-body::after {
+/* segunda camada para garantir leitura */
 
+body::after {
   content: "";
 
   position: fixed;
-
   inset: 0;
 
   z-index: -1;
 
   background:
-    rgba(
-      247,
-      248,
-      244,
-      .84
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.05),
+      rgba(245, 247, 242, 0.22)
     );
+
+  pointer-events: none;
 }
 
 
-/* ============================================================
-   BANNER
-============================================================ */
+/* =========================================================
+   HEADER
+========================================================= */
 
-body > header::before {
+header {
+  min-height: 82px;
 
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 5%;
+
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  color: white;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(85, 102, 77, 0.90),
+      rgba(111, 128, 101, 0.82)
+    ),
+    url("/assets/lenvie-header.jpg");
+
+  background-size: cover;
+  background-position: center;
+
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+
+/*
+  O HTML atual possui:
+  <strong>LENVIE · Projetos</strong>
+
+  Mantemos o elemento para não precisar alterar
+  todos os HTMLs.
+*/
+
+header > strong {
+  font-size: 0;
+
+  width: 180px;
+  height: 55px;
+
+  display: block;
+
+  background-image: url("/assets/lenvie-header.jpg");
+  background-size: cover;
+  background-position: left center;
+  background-repeat: no-repeat;
+
+  border-radius: 6px;
+
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+
+/* =========================================================
+   NAVEGAÇÃO
+========================================================= */
+
+header nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+header nav a {
+  color: #ffffff;
+  text-decoration: none;
+
+  font-size: 15px;
+  font-weight: 500;
+
+  position: relative;
+
+  transition: opacity 0.2s ease;
+}
+
+header nav a:hover {
+  opacity: 0.72;
+}
+
+header nav a::after {
   content: "";
 
   position: absolute;
 
-  top: 0;
   left: 0;
   right: 0;
+  bottom: -8px;
 
-  height: 78px;
+  height: 2px;
 
-  background:
-    #aebba5
-    url('/img/lenvie-topo.png')
-    center center /
-    cover
-    no-repeat;
+  background: rgba(255, 255, 255, 0.8);
 
-  z-index: 0;
+  transform: scaleX(0);
+
+  transition: transform 0.2s ease;
+}
+
+header nav a:hover::after {
+  transform: scaleX(1);
 }
 
 
-body > header {
-
-  position: relative;
-
-  margin-top: 78px;
-
-  min-height: 58px;
-
-  padding:
-    0 4%;
-
-  display: flex;
-
-  justify-content:
-    space-between;
-
-  align-items:
-    center;
-
-  gap: 18px;
-
-  background:
-    rgba(
-      18,
-      29,
-      31,
-      .97
-    );
-
-  color: white;
-
-  box-shadow:
-    0 3px 12px
-    rgba(
-      0,
-      0,
-      0,
-      .10
-    );
-}
-
-
-.brand {
-
-  position: relative;
-
-  z-index: 1;
-
-  display: flex;
-
-  align-items: baseline;
-
-  gap: 7px;
-
-  color: white;
-
-  text-decoration: none;
-
-  font-weight: 800;
-
-  letter-spacing:
-    .2px;
-}
-
-
-.brand span {
-  font-size: 17px;
-}
-
-
-.brand small {
-  font-size: 12px;
-  opacity: .85;
-}
-
-
-header nav {
-
-  position: relative;
-
-  z-index: 1;
-
-  display: flex;
-
-  flex-wrap: wrap;
-
-  align-items: center;
-
-  gap: 5px;
-}
-
-
-header nav a {
-
-  color: white;
-
-  text-decoration: none;
-
-  padding:
-    19px 10px;
-
-  transition:
-    background .2s;
-}
-
-
-header nav a:hover {
-
-  background:
-    rgba(
-      255,
-      255,
-      255,
-      .08
-    );
-}
-
-
-/* ============================================================
-   CONTEÚDO
-============================================================ */
+/* =========================================================
+   CONTAINER
+========================================================= */
 
 .wrap {
+  width: min(94%, 1380px);
 
-  max-width:
-    1240px;
+  margin: 0 auto;
 
-  margin:
-    30px auto;
-
-  padding:
-    0 22px 40px;
+  padding: 42px 0 70px;
 }
 
+
+/* =========================================================
+   CABEÇALHOS
+========================================================= */
+
+h1,
+h2,
+h3 {
+  color: #172033;
+}
+
+h1 {
+  margin-top: 0;
+  margin-bottom: 5px;
+
+  font-size: 34px;
+  line-height: 1.15;
+
+  letter-spacing: -0.6px;
+}
+
+h2 {
+  margin-top: 28px;
+
+  font-size: 24px;
+}
 
 .page-head {
-
   display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 
-  align-items:
-    center;
+  gap: 20px;
 
-  justify-content:
-    space-between;
-
-  gap: 18px;
-
-  margin-bottom:
-    18px;
+  margin-bottom: 20px;
 }
 
-
-.page-head h1 {
-
-  margin:
-    0 0 5px;
-
-  color:
-    #172319;
-
-  font-size:
-    clamp(
-      25px,
-      3vw,
-      34px
-    );
-}
-
-
-.page-head p {
-  margin: 0;
-}
-
-
-.cards {
-
-  display: grid;
-
-  grid-template-columns:
-    repeat(4,1fr);
-
-  gap: 16px;
-}
-
-
-.card,
-.panel {
-
-  background:
-    rgba(
-      255,
-      255,
-      255,
-      .94
-    );
-
-  border:
-    1px solid
-    rgba(
-      209,
-      218,
-      205,
-      .82
-    );
-
-  border-radius:
-    15px;
-
-  padding:
-    20px;
-
-  box-shadow:
-    0 8px 25px
-    rgba(
-      42,
-      56,
-      40,
-      .07
-    );
-
-  backdrop-filter:
-    blur(4px);
-}
-
-
-.card b {
-
-  display: block;
-
-  margin-top:
-    8px;
-
-  font-size:
-    32px;
-
-  color:
-    var(--verde-escuro);
-}
-
-
-.card small,
-.muted {
-
-  color:
-    var(--texto-suave);
-}
-
-
-/* ============================================================
-   BOTÕES
-============================================================ */
-
-.btn {
-
-  border: 0;
-
-  border-radius:
-    9px;
-
-  padding:
-    11px 16px;
-
-  background:
-    var(--verde);
-
-  color: white;
-
-  cursor: pointer;
-
-  text-decoration: none;
-
-  display: inline-flex;
-
+.summary-line {
+  display: flex;
   align-items: center;
+  flex-wrap: wrap;
 
-  justify-content: center;
+  gap: 10px;
 
-  gap: 6px;
+  margin-top: 6px;
 
-  font-weight: 600;
-
-  transition:
-    transform .15s,
-    background .15s,
-    box-shadow .15s;
+  color: var(--texto-secundario);
 }
 
 
-.btn:hover {
+/* =========================================================
+   PAINÉIS
+========================================================= */
 
+.panel {
   background:
-    #55634f;
-
-  transform:
-    translateY(-1px);
-
-  box-shadow:
-    0 4px 10px
-    rgba(
-      0,
-      0,
-      0,
-      .10
-    );
-}
-
-
-.secondary {
-
-  background:
-    #e7ebe4;
-
-  color:
-    #253023;
+    rgba(255, 255, 255, 0.91);
 
   border:
-    1px solid
-    #d3dbcf;
+    1px solid rgba(210, 218, 207, 0.85);
+
+  border-radius: 17px;
+
+  padding: 22px;
+
+  box-shadow: var(--sombra);
+
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
 }
 
 
-.secondary:hover {
-
-  background:
-    #dce3d8;
-}
-
-
-.export-actions {
-
-  display: flex;
-
-  gap: 9px;
-
-  flex-wrap: wrap;
-}
-
-
-/* ============================================================
-   FORMULÁRIO
-============================================================ */
+/* =========================================================
+   GRID FORMULÁRIOS
+========================================================= */
 
 .grid {
-
   display: grid;
 
   grid-template-columns:
-    repeat(2,1fr);
+    repeat(2, minmax(0, 1fr));
 
-  gap: 14px;
+  gap: 15px 18px;
 }
-
 
 .full {
-
-  grid-column:
-    1 / -1;
+  grid-column: 1 / -1;
 }
 
+
+/* =========================================================
+   FORM
+========================================================= */
 
 label {
-
   display: block;
 
-  margin-bottom:
-    5px;
+  margin-bottom: 6px;
 
-  font-size:
-    13px;
+  font-size: 13px;
+  font-weight: 650;
 
-  font-weight: 700;
-
-  color:
-    #283526;
+  color: #20291f;
 }
-
 
 input,
 select,
 textarea {
-
   width: 100%;
 
-  padding:
-    10px 11px;
+  border: 1px solid #ccd5c8;
 
-  border:
-    1px solid
-    #cbd5c7;
-
-  border-radius:
-    8px;
+  border-radius: 8px;
 
   background:
-    rgba(
-      255,
-      255,
-      255,
-      .96
-    );
+    rgba(255, 255, 255, 0.90);
 
-  color:
-    #172319;
+  color: #111827;
+
+  font: inherit;
+
+  padding: 10px 12px;
 
   outline: none;
 
   transition:
-    border .15s,
-    box-shadow .15s;
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
+input,
+select {
+  min-height: 40px;
+}
+
+textarea {
+  min-height: 80px;
+
+  resize: vertical;
+}
 
 input:focus,
 select:focus,
 textarea:focus {
+  border-color: var(--verde-lenvie);
 
-  border-color:
-    #7d8f73;
+  background: white;
 
   box-shadow:
-    0 0 0 3px
-    rgba(
-      102,
-      116,
-      92,
-      .12
-    );
+    0 0 0 3px rgba(111, 128, 101, 0.12);
 }
-
-
-textarea {
-
-  min-height:
-    82px;
-
-  resize:
-    vertical;
-}
-
 
 input:disabled {
-
-  background:
-    #eef1eb;
-
-  color:
-    #5e695b;
+  background: #f3f5f1;
+  color: #647064;
 }
 
 
-/* ============================================================
-   STATUS
-============================================================ */
+/* =========================================================
+   BOTÕES
+========================================================= */
 
-.pill,
-.flag {
-
-  display:
-    inline-block;
-
-  padding:
-    5px 9px;
-
-  border-radius:
-    999px;
-
-  font-size:
-    11px;
-
-  white-space:
-    nowrap;
-}
-
-
-.pill {
-
-  background:
-    #e8ede5;
-
-  color:
-    #344131;
-}
-
-
-.flag {
-
-  background:
-    #f7e7ad;
-
-  color:
-    #705700;
-
-  font-weight:
-    700;
-}
-
-
-.summary-line {
-
-  display: flex;
-
-  gap: 10px;
+.btn,
+button.btn {
+  display: inline-flex;
 
   align-items: center;
+  justify-content: center;
 
-  flex-wrap: wrap;
+  min-height: 40px;
 
-  color:
-    #687467;
-}
+  padding: 10px 18px;
 
+  border: 0;
 
-/* ============================================================
-   TABELAS
-============================================================ */
+  border-radius: 8px;
 
-.table-scroll {
+  background: var(--verde-lenvie);
 
-  overflow: auto;
-}
+  color: white;
 
+  text-decoration: none;
 
-table {
-
-  width: 100%;
-
-  border-collapse:
-    collapse;
-
-  background:
-    transparent;
-}
-
-
-th,
-td {
-
-  padding:
-    12px;
-
-  border-bottom:
-    1px solid
-    #e1e6df;
-
-  text-align:
-    left;
-
-  white-space:
-    nowrap;
-}
-
-
-th {
-
-  font-size:
-    11px;
-
-  text-transform:
-    uppercase;
-
-  color:
-    #687467;
-
-  letter-spacing:
-    .3px;
-}
-
-
-tbody tr {
-
-  transition:
-    background .15s;
-}
-
-
-tbody tr:hover {
-
-  background:
-    rgba(
-      224,
-      231,
-      220,
-      .35
-    );
-}
-
-
-a {
-
-  color:
-    #52654b;
-}
-
-
-.check-column {
-
-  width:
-    80px;
-
-  text-align:
-    center;
-}
-
-
-.project-check {
-
-  width:
-    18px;
-
-  height:
-    18px;
+  font-size: 14px;
+  font-weight: 650;
 
   cursor: pointer;
 
-  accent-color:
-    var(--verde);
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.btn:hover,
+button.btn:hover {
+  background: var(--verde-lenvie-escuro);
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 5px 15px rgba(69, 88, 61, 0.18);
+}
+
+.btn.secondary {
+  background:
+    rgba(237, 240, 234, 0.95);
+
+  color: #253022;
+
+  border:
+    1px solid #d6ddd2;
+}
+
+.btn.secondary:hover {
+  background: #e2e8de;
 }
 
 
-/* ============================================================
-   FILTROS E SELEÇÃO
-============================================================ */
+/* =========================================================
+   FILTROS / TOOLBAR
+========================================================= */
 
+.filters,
 .toolbar {
-
-  display: grid;
-
-  grid-template-columns:
-    2fr 1fr;
-
-  gap: 10px;
-
-  margin-bottom:
-    14px;
-}
-
-
-.selection-panel {
-
-  margin-bottom:
-    18px;
-
-  padding:
-    16px 18px;
-}
-
-
-.selection-actions {
-
   display: flex;
 
-  align-items:
-    center;
+  align-items: center;
 
   gap: 10px;
 
   flex-wrap: wrap;
 }
 
+.filters input {
+  flex: 2 1 320px;
+}
 
-.check-all {
+.filters select {
+  flex: 1 1 220px;
+}
 
+
+/* =========================================================
+   TABELAS
+========================================================= */
+
+.table-wrap,
+.table-container {
+  width: 100%;
+
+  overflow-x: auto;
+
+  border-radius: 14px;
+
+  scrollbar-width: thin;
+}
+
+table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  table-layout: auto;
+}
+
+th {
+  padding: 12px 10px;
+
+  text-align: left;
+
+  font-size: 11px;
+
+  letter-spacing: 0.35px;
+
+  text-transform: uppercase;
+
+  color: #697468;
+
+  border-bottom: 1px solid #dce2d8;
+
+  white-space: nowrap;
+}
+
+td {
+  padding: 13px 10px;
+
+  border-bottom: 1px solid #e1e6de;
+
+  vertical-align: middle;
+
+  font-size: 14px;
+
+  color: #283028;
+}
+
+tbody tr {
+  transition:
+    background 0.15s ease;
+}
+
+tbody tr:hover {
+  background:
+    rgba(111, 128, 101, 0.055);
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+td a {
+  color: #506249;
+
+  font-weight: 600;
+
+  text-decoration: underline;
+
+  text-underline-offset: 2px;
+}
+
+
+/* permite que projeto e cliente ocupem menos espaço */
+
+th:nth-child(3),
+td:nth-child(3),
+th:nth-child(4),
+td:nth-child(4) {
+  white-space: normal;
+}
+
+
+/* =========================================================
+   CHECKBOX
+========================================================= */
+
+input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+
+  min-height: auto;
+
+  accent-color: var(--verde-lenvie);
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   PILLS / STATUS
+========================================================= */
+
+.pill,
+.flag {
   display: inline-flex;
 
   align-items: center;
 
-  gap: 7px;
+  width: fit-content;
 
-  margin: 0;
+  padding: 5px 10px;
 
-  cursor: pointer;
+  border-radius: 999px;
+
+  font-size: 11px;
+
+  font-weight: 700;
+
+  line-height: 1;
+
+  white-space: nowrap;
+}
+
+.pill {
+  background: var(--verde-status);
+
+  color: #45533f;
+}
+
+.flag {
+  background: var(--amarelo);
+
+  color: var(--amarelo-texto);
 }
 
 
-.check-all input {
-
-  width:
-    17px;
-
-  height:
-    17px;
-
-  accent-color:
-    var(--verde);
-}
-
-
-.selection-counter {
-
-  color:
-    #687467;
-
-  font-size:
-    13px;
-
-  margin-right:
-    auto;
-}
-
-
-/* ============================================================
-   HISTÓRICO E TEMPOS
-============================================================ */
+/* =========================================================
+   TEMPOS
+========================================================= */
 
 .split {
-
   display: grid;
 
   grid-template-columns:
-    1fr 1fr;
+    repeat(2, minmax(0, 1fr));
 
   gap: 16px;
 
-  margin:
-    20px 0;
+  margin-top: 20px;
 }
-
 
 .bar-row {
-
   display: flex;
 
-  justify-content:
-    space-between;
+  justify-content: space-between;
+  align-items: center;
 
-  gap: 12px;
+  gap: 20px;
 
-  border-bottom:
-    1px solid
-    #edf0ea;
+  padding: 12px 0;
 
-  padding:
-    9px 0;
+  border-bottom: 1px solid #e5e9e2;
 }
-
 
 .bar-row:last-child {
-
-  border-bottom:
-    0;
+  border-bottom: 0;
 }
 
+
+/* =========================================================
+   HISTÓRICO
+========================================================= */
 
 .history {
+  position: relative;
+
+  padding:
+    4px 0
+    20px 18px;
 
   border-left:
-    3px solid
-    #87977d;
+    3px solid #d5ded1;
 
-  padding-left:
-    15px;
+  line-height: 1.5;
+}
 
-  margin:
-    16px 0;
+.history::before {
+  content: "";
+
+  position: absolute;
+
+  width: 9px;
+  height: 9px;
+
+  border-radius: 50%;
+
+  background: var(--verde-lenvie);
+
+  left: -6px;
+  top: 8px;
+}
+
+.history:last-child {
+  padding-bottom: 4px;
+}
+
+.muted {
+  color: #758075;
 }
 
 
-h2 {
+/* =========================================================
+   DASHBOARD / CARDS
+========================================================= */
 
-  margin-top:
-    28px;
+.cards {
+  display: grid;
 
-  color:
-    #253023;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 15px;
+
+  margin: 20px 0;
+}
+
+.card {
+  background:
+    rgba(255, 255, 255, 0.92);
+
+  border:
+    1px solid rgba(214, 221, 211, 0.9);
+
+  border-radius: 15px;
+
+  padding: 20px;
+
+  box-shadow: var(--sombra);
+
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+.card strong {
+  display: block;
+
+  margin-top: 6px;
+
+  font-size: 28px;
+
+  color: #24301f;
 }
 
 
-/* ============================================================
-   RESPONSIVO
-============================================================ */
+/* =========================================================
+   RESPONSIVIDADE
+========================================================= */
 
-@media (
-  max-width: 800px
-) {
+@media (max-width: 1050px) {
 
-  body > header::before {
-    height:
-      60px;
-  }
-
-
-  body > header {
-    margin-top:
-      60px;
-  }
-
-
-  .cards,
-  .grid,
-  .split {
-
+  .cards {
     grid-template-columns:
-      1fr 1fr;
+      repeat(2, minmax(0, 1fr));
   }
 
+  .wrap {
+    width: 95%;
+  }
+
+}
+
+
+@media (max-width: 760px) {
+
+  header {
+    min-height: auto;
+
+    padding: 12px 18px;
+
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    gap: 12px;
+  }
+
+  header > strong {
+    width: 150px;
+    height: 45px;
+  }
+
+  header nav {
+    width: 100%;
+
+    gap: 18px;
+
+    overflow-x: auto;
+  }
+
+  .wrap {
+    width: 94%;
+
+    padding-top: 26px;
+  }
 
   .page-head {
-
-    align-items:
-      flex-start;
-
-    flex-direction:
-      column;
+    flex-direction: column;
   }
 
-
-  .toolbar {
-
-    grid-template-columns:
-      1fr;
+  .grid,
+  .split {
+    grid-template-columns: 1fr;
   }
 
-
-  table {
-
-    font-size:
-      12px;
+  .full {
+    grid-column: auto;
   }
+
+  .cards {
+    grid-template-columns: 1fr;
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
 }
 
 
-@media (
-  max-width: 520px
-) {
+@media (max-width: 480px) {
 
-  .cards,
-  .grid,
-  .split {
-
-    grid-template-columns:
-      1fr;
+  header nav {
+    font-size: 13px;
   }
-
-
-  body > header {
-
-    align-items:
-      flex-start;
-
-    flex-direction:
-      column;
-
-    padding-top:
-      12px;
-
-    padding-bottom:
-      8px;
-  }
-
 
   header nav a {
-
-    padding:
-      8px 7px;
+    font-size: 13px;
   }
 
-
-  .selection-actions {
-
-    align-items:
-      stretch;
-
-    flex-direction:
-      column;
+  .wrap {
+    width: 96%;
   }
 
-
-  .selection-counter {
-
-    margin-right:
-      0;
+  h1 {
+    font-size: 25px;
   }
 
-
-  .export-actions {
-
-    width: 100%;
-  }
-
-
-  .export-actions .btn {
-
-    flex: 1;
-  }
 }
