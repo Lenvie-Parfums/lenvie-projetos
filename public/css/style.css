@@ -321,3 +321,930 @@ h2{
   }
 
 }
+/* =========================================================
+   DASHBOARD BI - LENVIE
+   ========================================================= */
+
+.dashboard-bi{
+  padding-bottom:60px;
+}
+
+
+/* CABEÇALHO */
+
+.bi-header{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:30px;
+  margin:36px 0 32px;
+}
+
+.bi-header h1{
+  margin:6px 0 5px;
+  font-size:34px;
+  letter-spacing:-1px;
+  color:#172033;
+}
+
+.bi-header p{
+  margin:0;
+}
+
+.bi-eyebrow,
+.bi-panel-label,
+.bi-section-title > div > span{
+  display:block;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:1.4px;
+  color:#66766d;
+}
+
+.bi-header-actions{
+  display:flex;
+  align-items:flex-end;
+  gap:12px;
+}
+
+.bi-periodo{
+  min-width:190px;
+}
+
+.bi-periodo input{
+  height:42px;
+  background:rgba(255,255,255,.92);
+}
+
+
+/* TÍTULO DE SEÇÃO */
+
+.bi-section-title{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:20px;
+  margin:30px 0 14px;
+}
+
+.bi-section-title h2{
+  margin:4px 0 0;
+  font-size:20px;
+}
+
+.bi-section-title p{
+  margin:0;
+  font-size:13px;
+}
+
+
+/* KPI */
+
+.bi-kpis{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:12px;
+}
+
+.bi-kpi{
+  min-height:145px;
+  padding:19px;
+  border:1px solid rgba(222,228,224,.9);
+  border-radius:14px;
+  background:rgba(255,255,255,.94);
+  box-shadow:0 8px 28px rgba(15,23,42,.05);
+}
+
+.bi-kpi-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  color:#65716b;
+  font-size:12px;
+  font-weight:700;
+}
+
+.bi-kpi strong{
+  display:block;
+  margin:18px 0 5px;
+  font-size:35px;
+  line-height:1;
+  color:#172033;
+}
+
+.bi-kpi small{
+  color:#8a9690;
+  font-size:11px;
+}
+
+.bi-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#355f4b;
+}
+
+.bi-dot.success{
+  background:#3d7a59;
+}
+
+.bi-dot.warning{
+  background:#c79435;
+}
+
+.bi-dot.neutral{
+  background:#9aa6a0;
+}
+
+
+/* PAINÉIS */
+
+.bi-grid-main{
+  display:grid;
+  grid-template-columns:1.35fr .65fr;
+  gap:16px;
+  margin-top:18px;
+}
+
+.bi-grid-charts{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+
+.bi-panel,
+.bi-table-section{
+  border:1px solid rgba(222,228,224,.9);
+  border-radius:16px;
+  background:rgba(255,255,255,.95);
+  box-shadow:0 8px 28px rgba(15,23,42,.05);
+}
+
+.bi-panel{
+  padding:22px;
+}
+
+.bi-panel-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:20px;
+  margin-bottom:22px;
+}
+
+.bi-panel-head h2{
+  margin:4px 0 0;
+  font-size:18px;
+}
+
+.bi-panel-period{
+  padding:6px 10px;
+  border-radius:8px;
+  background:#f2f5f3;
+  color:#52635a;
+  font-size:11px;
+  font-weight:700;
+}
+
+
+/* MOVIMENTO */
+
+.bi-movement-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+}
+
+.bi-movement{
+  padding:16px;
+  border-radius:12px;
+  background:#f7f9f8;
+  border:1px solid #edf0ee;
+}
+
+.bi-movement > span{
+  display:block;
+  min-height:32px;
+  color:#718078;
+  font-size:11px;
+  font-weight:700;
+}
+
+.bi-movement strong{
+  display:inline-block;
+  margin-top:12px;
+  font-size:27px;
+  color:#20342a;
+}
+
+.bi-movement small{
+  margin-left:4px;
+  color:#829087;
+}
+
+
+/* SAÚDE */
+
+.bi-health-list{
+  display:flex;
+  flex-direction:column;
+}
+
+.bi-health-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:48px;
+  border-bottom:1px solid #eef1ef;
+}
+
+.bi-health-row:last-child{
+  border-bottom:0;
+}
+
+.bi-health-row span{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  color:#56645d;
+  font-size:13px;
+}
+
+.bi-health-row strong{
+  font-size:19px;
+  color:#172033;
+}
+
+.health-indicator{
+  display:inline-block;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#8a9690;
+}
+
+.health-indicator.danger{
+  background:#a54a45;
+}
+
+.health-indicator.warning{
+  background:#c79435;
+}
+
+.health-indicator.neutral{
+  background:#7d8983;
+}
+
+
+/* BARRAS */
+
+.bi-bars{
+  min-height:180px;
+}
+
+.bi-bar-item{
+  margin-bottom:17px;
+}
+
+.bi-bar-item:last-child{
+  margin-bottom:0;
+}
+
+.bi-bar-info{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  margin-bottom:7px;
+  font-size:12px;
+}
+
+.bi-bar-info span{
+  overflow:hidden;
+  color:#526159;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.bi-bar-info strong{
+  color:#24372d;
+}
+
+.bi-bar-track{
+  width:100%;
+  height:7px;
+  overflow:hidden;
+  border-radius:99px;
+  background:#edf1ee;
+}
+
+.bi-bar-fill{
+  height:100%;
+  border-radius:99px;
+  background:linear-gradient(
+    90deg,
+    #1f4434,
+    #5d806d
+  );
+}
+
+
+/* TABELAS */
+
+.bi-table-section{
+  margin-top:20px;
+  padding:22px;
+}
+
+.bi-table-section .bi-panel-head{
+  margin-bottom:15px;
+}
+
+.bi-table-wrap{
+  overflow:auto;
+  border:1px solid #edf0ee;
+  border-radius:11px;
+}
+
+.bi-table{
+  background:transparent;
+}
+
+.bi-table th{
+  padding:11px 13px;
+  background:#f7f9f8;
+  color:#7a8780;
+  font-size:10px;
+  letter-spacing:.5px;
+}
+
+.bi-table td{
+  padding:13px;
+  border-bottom:1px solid #eef1ef;
+  color:#45534c;
+  font-size:12px;
+}
+
+.bi-table tbody tr:last-child td{
+  border-bottom:0;
+}
+
+.bi-table tbody tr:hover{
+  background:#fafcfb;
+}
+
+.bi-project-link,
+.bi-code{
+  color:#294f3d;
+  font-weight:700;
+  text-decoration:none;
+}
+
+.bi-project-link:hover,
+.bi-code:hover{
+  text-decoration:underline;
+}
+
+
+/* STATUS */
+
+.bi-status{
+  display:inline-flex;
+  align-items:center;
+  padding:5px 9px;
+  border-radius:99px;
+  background:#edf4ef;
+  color:#3b624c;
+  font-size:10px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.bi-status.warning{
+  background:#fff4da;
+  color:#80601e;
+}
+
+.bi-status.danger{
+  background:#fae8e6;
+  color:#94443f;
+}
+
+.bi-status.normal{
+  background:#eaf3ed;
+  color:#356348;
+}
+
+.danger-label{
+  color:#94443f;
+}
+
+.bi-empty{
+  padding:30px !important;
+  text-align:center;
+  color:#85918b !important;
+}
+
+
+/* BOTÃO NO DASH */
+
+.dashboard-bi .btn{
+  min-height:42px;
+  background:#203f31;
+  transition:
+    transform .15s ease,
+    background .15s ease;
+}
+
+.dashboard-bi .btn:hover{
+  background:#172f25;
+  transform:translateY(-1px);
+}
+
+
+/* RESPONSIVO */
+
+@media(max-width:1050px){
+
+  .bi-kpis{
+    grid-template-columns:repeat(3,1fr);
+  }
+
+  .bi-grid-main{
+    grid-template-columns:1fr;
+  }
+
+}
+
+@media(max-width:800px){
+
+  .bi-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .bi-header-actions{
+    width:100%;
+  }
+
+  .bi-periodo{
+    flex:1;
+  }
+
+  .bi-kpis{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .bi-grid-charts{
+    grid-template-columns:1fr;
+  }
+
+  .bi-movement-grid{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+}
+
+@media(max-width:520px){
+
+  .bi-header-actions{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .bi-kpis{
+    grid-template-columns:1fr;
+  }
+
+  .bi-movement-grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .bi-panel-head,
+  .bi-section-title{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+}
+/* =========================================================
+   DASHBOARD BI - EVOLUÇÃO 02
+   ========================================================= */
+
+.bi-analysis-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:16px;
+}
+
+
+/* deixa os painéis analíticos mais compactos */
+
+.bi-analysis-grid .bi-panel{
+  min-height:300px;
+}
+
+
+/* =========================================================
+   COMPOSIÇÃO DA CARTEIRA
+   ========================================================= */
+
+.bi-composition{
+  display:grid;
+  grid-template-columns:190px 1fr;
+  align-items:center;
+  gap:28px;
+  min-height:205px;
+}
+
+
+.bi-donut-wrap{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+
+.bi-donut{
+  position:relative;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  width:160px;
+  height:160px;
+
+  border-radius:50%;
+
+  background:#edf1ee;
+}
+
+
+.bi-donut::after{
+  content:"";
+
+  position:absolute;
+
+  width:105px;
+  height:105px;
+
+  border-radius:50%;
+
+  background:#fff;
+}
+
+
+.bi-donut-center{
+  position:relative;
+  z-index:2;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+
+
+.bi-donut-center strong{
+  font-size:30px;
+  line-height:1;
+  color:#20342a;
+}
+
+
+.bi-donut-center span{
+  margin-top:5px;
+
+  color:#849087;
+
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+}
+
+
+/* LEGENDA */
+
+.bi-legend{
+  display:flex;
+  flex-direction:column;
+}
+
+
+.bi-legend > div{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  min-height:40px;
+
+  border-bottom:1px solid #edf0ee;
+
+  font-size:12px;
+}
+
+
+.bi-legend > div:last-child{
+  border-bottom:0;
+}
+
+
+.bi-legend span{
+  display:flex;
+  align-items:center;
+  gap:9px;
+
+  color:#58665f;
+}
+
+
+.bi-legend strong{
+  color:#20342a;
+  font-size:14px;
+}
+
+
+.legend-dot{
+  display:inline-block;
+
+  width:9px;
+  height:9px;
+
+  border-radius:50%;
+}
+
+
+.legend-dot.andamento{
+  background:#315c48;
+}
+
+
+.legend-dot.pausado{
+  background:#c89b45;
+}
+
+
+.legend-dot.concluido{
+  background:#72967f;
+}
+
+
+.legend-dot.sem-conversao{
+  background:#aab4ae;
+}
+
+
+/* =========================================================
+   INDICADORES DE FLUXO
+   ========================================================= */
+
+.bi-flow{
+  min-height:205px;
+}
+
+
+.bi-flow-main{
+  margin-bottom:10px;
+  padding:16px;
+
+  border:1px solid #e7ece9;
+  border-radius:12px;
+
+  background:#f6f9f7;
+}
+
+
+.bi-flow-main > span{
+  display:block;
+
+  color:#637168;
+
+  font-size:11px;
+  font-weight:700;
+}
+
+
+.bi-flow-main strong{
+  display:block;
+
+  margin:6px 0 3px;
+
+  color:#254636;
+
+  font-size:31px;
+  line-height:1;
+}
+
+
+.bi-flow-main small{
+  color:#8a958f;
+  font-size:10px;
+}
+
+
+.bi-flow-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  min-height:38px;
+
+  border-bottom:1px solid #edf0ee;
+
+  color:#5e6c64;
+
+  font-size:12px;
+}
+
+
+.bi-flow-row:last-child{
+  border-bottom:0;
+}
+
+
+.bi-flow-row strong{
+  color:#20342a;
+  font-size:15px;
+}
+
+
+/* =========================================================
+   MELHORIA DOS GRÁFICOS DE BARRA
+   ========================================================= */
+
+.bi-analysis-grid .bi-bars{
+  max-height:225px;
+  overflow-y:auto;
+  padding-right:5px;
+}
+
+
+.bi-analysis-grid .bi-bar-item{
+  margin-bottom:14px;
+}
+
+
+.bi-analysis-grid .bi-bar-track{
+  height:9px;
+}
+
+
+.bi-analysis-grid .bi-bar-fill{
+  box-shadow:
+    inset 0 -1px 0 rgba(0,0,0,.08);
+}
+
+
+/* scroll discreto */
+
+.bi-analysis-grid .bi-bars::-webkit-scrollbar{
+  width:5px;
+}
+
+
+.bi-analysis-grid .bi-bars::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+
+.bi-analysis-grid .bi-bars::-webkit-scrollbar-thumb{
+  background:#cbd4ce;
+  border-radius:10px;
+}
+
+
+/* =========================================================
+   RESPONSIVO
+   ========================================================= */
+
+@media(max-width:900px){
+
+  .bi-analysis-grid{
+    grid-template-columns:1fr;
+  }
+
+}
+
+
+@media(max-width:520px){
+
+  .bi-composition{
+    grid-template-columns:1fr;
+  }
+
+}
+/* =========================================================
+   DASHBOARD BI - AJUSTE DE TAMANHO DAS FONTES
+   ========================================================= */
+
+/* Títulos dos cards principais:
+   Projetos cadastrados, Em andamento, Pausados... */
+.dashboard-bi .bi-kpi-top{
+  font-size:15px;
+}
+
+
+/* Texto auxiliar abaixo dos números dos cards */
+.dashboard-bi .bi-kpi small{
+  font-size:13px;
+}
+
+
+/* Títulos principais dos painéis:
+   Movimento do mês, Saúde da carteira,
+   Projetos por etapa, Composição da carteira etc. */
+.dashboard-bi .bi-panel-head h2{
+  font-size:22px;
+}
+
+
+/* Pequenos títulos superiores:
+   PERFORMANCE, MONITORAMENTO, PIPELINE,
+   CARTEIRA, GARGALOS, FLUXO, AGENDA... */
+.dashboard-bi .bi-eyebrow,
+.dashboard-bi .bi-panel-label,
+.dashboard-bi .bi-section-title > div > span{
+  font-size:13px;
+}
+
+
+/* Títulos de seção:
+   Projetos / Carteira e pipeline */
+.dashboard-bi .bi-section-title h2{
+  font-size:23px;
+}
+
+
+/* Movimento do mês:
+   Entradas, Concluídos, Aguardando cliente, Tempo médio */
+.dashboard-bi .bi-movement > span{
+  font-size:14px;
+}
+
+
+/* Saúde da carteira */
+.dashboard-bi .bi-health-row span{
+  font-size:15px;
+}
+
+
+/* Nomes dos gráficos de barras:
+   etapas e áreas */
+.dashboard-bi .bi-bar-info{
+  font-size:14px;
+}
+
+
+/* Legenda da composição da carteira */
+.dashboard-bi .bi-legend > div{
+  font-size:14px;
+}
+
+.dashboard-bi .bi-legend strong{
+  font-size:16px;
+}
+
+
+/* Indicadores de fluxo */
+.dashboard-bi .bi-flow-main > span{
+  font-size:14px;
+}
+
+.dashboard-bi .bi-flow-main small{
+  font-size:12px;
+}
+
+.dashboard-bi .bi-flow-row{
+  font-size:14px;
+}
+
+.dashboard-bi .bi-flow-row strong{
+  font-size:17px;
+}
+
+
+/* Cabeçalho das tabelas */
+.dashboard-bi .bi-table th{
+  font-size:12px;
+}
+
+
+/* Conteúdo das tabelas */
+.dashboard-bi .bi-table td{
+  font-size:14px;
+}
+
+
+/* Período exibido no painel */
+.dashboard-bi .bi-panel-period{
+  font-size:13px;
+}
+
+
+/* Textos secundários */
+.dashboard-bi .muted{
+  font-size:14px;
+}

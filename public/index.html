@@ -1,9 +1,7 @@
 <!doctype html>
-
 <html lang="pt-BR">
 
 <head>
-
   <meta charset="utf-8">
 
   <meta
@@ -11,68 +9,78 @@
     content="width=device-width,initial-scale=1"
   >
 
-  <title>
-    LENVIE - Projetos
-  </title>
+  <title>LENVIE - Dashboard</title>
 
-  <link
-    rel="stylesheet"
-    href="/css/style.css"
-  >
-
-  <link
-    rel="stylesheet"
-    href="/css/auth.css"
-  >
-
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/auth.css">
 </head>
 
 <body>
 
-  <header>
+<header>
 
-    <a
-      href="/"
-      class="brand"
-    >
-      <span>LENVIE</span>
-      <small>Projetos</small>
+  <a href="/" class="brand">
+    <span>LENVIE</span>
+    <small>Projetos</small>
+  </a>
+
+  <nav>
+
+    <a href="/">
+      Dashboard
     </a>
 
-    <nav>
+    <a href="/projetos.html">
+      Projetos
+    </a>
 
-      <a href="/">
-        Dashboard
-      </a>
+    <a
+      href="/projeto.html"
+      data-permission="criar"
+    >
+      Novo Projeto
+    </a>
 
-      <a href="/projetos.html">
-        Projetos
-      </a>
+  </nav>
 
-      <a
-        href="/projeto.html"
-        data-permission="criar"
-      >
-        Novo Projeto
-      </a>
+</header>
 
-    </nav>
 
-  </header>
+<main class="wrap dashboard-bi">
 
-  <main class="wrap">
+  <!-- CABEÇALHO -->
 
-    <div class="page-head">
+  <section class="bi-header">
 
-      <div>
+    <div>
 
-        <h1>
-          Visão Geral
-        </h1>
+      <span class="bi-eyebrow">
+        LENVIE · GESTÃO DE PROJETOS
+      </span>
 
-        <p class="muted">
-          Acompanhamento centralizado dos projetos comerciais.
-        </p>
+      <h1>
+        Dashboard Executivo
+      </h1>
+
+      <p class="muted">
+        Visão consolidada da carteira de projetos comerciais.
+      </p>
+
+    </div>
+
+
+    <div class="bi-header-actions">
+
+      <div class="bi-periodo">
+
+        <label for="mesMovimento">
+          Período analisado
+        </label>
+
+        <input
+          type="month"
+          id="mesMovimento"
+        >
 
       </div>
 
@@ -86,187 +94,583 @@
 
     </div>
 
-    <section class="cards">
+  </section>
 
-      <div class="card">
 
-        Projetos cadastrados
+  <!-- KPIS -->
 
-        <b id="cadastrados">
-          —
-        </b>
+  <div class="bi-section-title">
 
-      </div>
+    <div>
 
-      <div class="card">
+      <span>
+        VISÃO DA CARTEIRA
+      </span>
 
-        Em andamento
-
-        <b id="andamento">
-          —
-        </b>
-
-      </div>
-
-      <div class="card">
-
-        Pausados
-
-        <b id="pausados">
-          —
-        </b>
-
-      </div>
-
-      <div class="card">
-
-        Concluídos
-
-        <b id="concluidos">
-          —
-        </b>
-
-      </div>
-
-      <div class="card">
-
-        Concluídos sem conversão
-
-        <b id="semConversao">
-          —
-        </b>
-
-      </div>
-
-    </section>
-
-    <h2>
-      Atenção
-    </h2>
-
-    <section class="cards">
-
-      <div class="card">
-
-        Atrasados
-
-        <b id="atrasados">
-          —
-        </b>
-
-      </div>
-
-      <div class="card">
-
-        Ações vencidas
-
-        <b id="acoesVencidas">
-          —
-        </b>
-
-      </div>
-
-      <div class="card">
-
-        Sem atualização +15d
-
-        <b id="semAtualizacao">
-          —
-        </b>
-
-      </div>
-
-      <div class="card">
-
-        90 dias vencido
-
-        <b id="prazo90Vencido">
-          —
-        </b>
-
-      </div>
-
-    </section>
-
-    <div class="page-head" style="margin-top: 28px; margin-bottom: 12px;">
-
-      <div>
-        <h2 style="margin:0;">
-          Movimento do mês
-        </h2>
-        <p class="muted" id="periodoMovimentoTexto" style="margin:6px 0 0;">
-          Indicadores referentes ao mês selecionado.
-        </p>
-      </div>
-
-      <div>
-        <label for="mesMovimento">
-          Mês analisado
-        </label>
-        <input
-          type="month"
-          id="mesMovimento"
-          aria-label="Selecionar mês do movimento"
-        >
-      </div>
+      <h2>
+        Projetos
+      </h2>
 
     </div>
 
-    <section class="cards">
+    <p class="muted">
+      Situação geral dos projetos cadastrados.
+    </p>
 
-      <div class="card">
+  </div>
 
-        Entradas no mês
 
-        <b id="entradasMes">
-          —
-        </b>
+  <section class="bi-kpis">
+
+    <article class="bi-kpi">
+
+      <div class="bi-kpi-top">
+        <span>Projetos cadastrados</span>
+        <span class="bi-dot"></span>
+      </div>
+
+      <strong id="cadastrados">—</strong>
+
+      <small>Total da carteira</small>
+
+    </article>
+
+
+    <article class="bi-kpi">
+
+      <div class="bi-kpi-top">
+        <span>Em andamento</span>
+        <span class="bi-dot"></span>
+      </div>
+
+      <strong id="andamento">—</strong>
+
+      <small>Projetos ativos</small>
+
+    </article>
+
+
+    <article class="bi-kpi">
+
+      <div class="bi-kpi-top">
+        <span>Pausados</span>
+        <span class="bi-dot warning"></span>
+      </div>
+
+      <strong id="pausados">—</strong>
+
+      <small>Projetos pausados</small>
+
+    </article>
+
+
+    <article class="bi-kpi">
+
+      <div class="bi-kpi-top">
+        <span>Concluídos</span>
+        <span class="bi-dot success"></span>
+      </div>
+
+      <strong id="concluidos">—</strong>
+
+      <small>Com conversão</small>
+
+    </article>
+
+
+    <article class="bi-kpi">
+
+      <div class="bi-kpi-top">
+        <span>Sem conversão</span>
+        <span class="bi-dot neutral"></span>
+      </div>
+
+      <strong id="semConversao">—</strong>
+
+      <small>Projetos encerrados</small>
+
+    </article>
+
+  </section>
+
+
+  <!-- MOVIMENTO / SAÚDE -->
+
+  <section class="bi-grid-main">
+
+    <article class="bi-panel">
+
+      <div class="bi-panel-head">
+
+        <div>
+
+          <span class="bi-panel-label">
+            PERFORMANCE
+          </span>
+
+          <h2>
+            Movimento do mês
+          </h2>
+
+        </div>
+
+        <span
+          class="bi-panel-period"
+          id="periodoMovimentoTexto"
+        >
+          Mês selecionado
+        </span>
 
       </div>
 
-      <div class="card">
 
-        Concluídos no mês
+      <div class="bi-movement-grid">
 
-        <b id="concluidosMes">
-          —
-        </b>
+        <div class="bi-movement">
+
+          <span>
+            Entradas no mês
+          </span>
+
+          <strong id="entradasMes">—</strong>
+
+        </div>
+
+
+        <div class="bi-movement">
+
+          <span>
+            Concluídos no mês
+          </span>
+
+          <strong id="concluidosMes">—</strong>
+
+        </div>
+
+
+        <div class="bi-movement">
+
+          <span>
+            Aguardando cliente
+          </span>
+
+          <strong id="cliente">—</strong>
+
+        </div>
+
+
+        <div class="bi-movement">
+
+          <span>
+            Tempo médio
+          </span>
+
+          <div>
+
+            <strong id="tempoMedio">—</strong>
+
+            <small>
+              dias
+            </small>
+
+          </div>
+
+        </div>
 
       </div>
 
-      <div class="card">
+    </article>
 
-        Aguardando cliente
 
-        <b id="cliente">
-          —
-        </b>
+    <article class="bi-panel">
 
-      </div>
+      <div class="bi-panel-head">
 
-      <div class="card">
+        <div>
 
-        Tempo médio aberto/concluído
+          <span class="bi-panel-label">
+            MONITORAMENTO
+          </span>
 
-        <b id="tempoMedio">
-          —
-        </b>
+          <h2>
+            Saúde da carteira
+          </h2>
 
-        <small>
-          dias
-        </small>
+        </div>
 
       </div>
 
-    </section>
 
-    <h2>
-      Lembretes de próximas ações
-    </h2>
+      <div class="bi-health-list">
 
-    <div class="panel table-scroll">
+        <div class="bi-health-row">
 
-      <table>
+          <span>
+            <i class="health-indicator danger"></i>
+            Projetos atrasados
+          </span>
+
+          <strong id="atrasados">—</strong>
+
+        </div>
+
+
+        <div class="bi-health-row">
+
+          <span>
+            <i class="health-indicator warning"></i>
+            Ações vencidas
+          </span>
+
+          <strong id="acoesVencidas">—</strong>
+
+        </div>
+
+
+        <div class="bi-health-row">
+
+          <span>
+            <i class="health-indicator neutral"></i>
+            Sem atualização +15d
+          </span>
+
+          <strong id="semAtualizacao">—</strong>
+
+        </div>
+
+
+        <div class="bi-health-row">
+
+          <span>
+            <i class="health-indicator danger"></i>
+            Prazo de 90 dias vencido
+          </span>
+
+          <strong id="prazo90Vencido">—</strong>
+
+        </div>
+
+      </div>
+
+    </article>
+
+  </section>
+
+
+  <!-- ANÁLISE -->
+
+  <div class="bi-section-title">
+
+    <div>
+
+      <span>
+        ANÁLISE OPERACIONAL
+      </span>
+
+      <h2>
+        Carteira e pipeline
+      </h2>
+
+    </div>
+
+  </div>
+
+
+  <section class="bi-analysis-grid">
+
+    <!-- PIPELINE -->
+
+    <article class="bi-panel">
+
+      <div class="bi-panel-head">
+
+        <div>
+
+          <span class="bi-panel-label">
+            PIPELINE
+          </span>
+
+          <h2>
+            Projetos por etapa
+          </h2>
+
+        </div>
+
+      </div>
+
+      <div
+        id="porEtapa"
+        class="bi-bars"
+      ></div>
+
+    </article>
+
+
+    <!-- COMPOSIÇÃO -->
+
+    <article class="bi-panel">
+
+      <div class="bi-panel-head">
+
+        <div>
+
+          <span class="bi-panel-label">
+            CARTEIRA
+          </span>
+
+          <h2>
+            Composição da carteira
+          </h2>
+
+        </div>
+
+      </div>
+
+
+      <div class="bi-composition">
+
+        <div class="bi-donut-wrap">
+
+          <div
+            class="bi-donut"
+            id="graficoCarteira"
+          >
+
+            <div class="bi-donut-center">
+
+              <strong id="donutTotal">
+                —
+              </strong>
+
+              <span>
+                projetos
+              </span>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="bi-legend">
+
+          <div>
+
+            <span>
+              <i class="legend-dot andamento"></i>
+              Em andamento
+            </span>
+
+            <strong id="legendaAndamento">
+              —
+            </strong>
+
+          </div>
+
+
+          <div>
+
+            <span>
+              <i class="legend-dot pausado"></i>
+              Pausados
+            </span>
+
+            <strong id="legendaPausados">
+              —
+            </strong>
+
+          </div>
+
+
+          <div>
+
+            <span>
+              <i class="legend-dot concluido"></i>
+              Concluídos
+            </span>
+
+            <strong id="legendaConcluidos">
+              —
+            </strong>
+
+          </div>
+
+
+          <div>
+
+            <span>
+              <i class="legend-dot sem-conversao"></i>
+              Sem conversão
+            </span>
+
+            <strong id="legendaSemConversao">
+              —
+            </strong>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </article>
+
+
+    <!-- PENDÊNCIAS -->
+
+    <article class="bi-panel">
+
+      <div class="bi-panel-head">
+
+        <div>
+
+          <span class="bi-panel-label">
+            GARGALOS
+          </span>
+
+          <h2>
+            Pendências por área
+          </h2>
+
+        </div>
+
+      </div>
+
+      <div
+        id="porArea"
+        class="bi-bars"
+      ></div>
+
+    </article>
+
+
+    <!-- FLUXO -->
+
+    <article class="bi-panel">
+
+      <div class="bi-panel-head">
+
+        <div>
+
+          <span class="bi-panel-label">
+            FLUXO
+          </span>
+
+          <h2>
+            Indicadores de fluxo
+          </h2>
+
+        </div>
+
+      </div>
+
+
+      <div class="bi-flow">
+
+        <div class="bi-flow-main">
+
+          <span>
+            Conversão da carteira
+          </span>
+
+          <strong id="taxaConversao">
+            —
+          </strong>
+
+          <small>
+            concluídos entre projetos encerrados
+          </small>
+
+        </div>
+
+
+        <div class="bi-flow-row">
+
+          <span>
+            Projetos em aberto
+          </span>
+
+          <strong id="projetosAbertos">
+            —
+          </strong>
+
+        </div>
+
+
+        <div class="bi-flow-row">
+
+          <span>
+            Aguardando cliente
+          </span>
+
+          <strong id="fluxoCliente">
+            —
+          </strong>
+
+        </div>
+
+
+        <div class="bi-flow-row">
+
+          <span>
+            Entradas no período
+          </span>
+
+          <strong id="fluxoEntradas">
+            —
+          </strong>
+
+        </div>
+
+
+        <div class="bi-flow-row">
+
+          <span>
+            Conclusões no período
+          </span>
+
+          <strong id="fluxoConclusoes">
+            —
+          </strong>
+
+        </div>
+
+      </div>
+
+    </article>
+
+  </section>
+
+
+  <!-- PRÓXIMAS AÇÕES -->
+
+  <section class="bi-table-section">
+
+    <div class="bi-panel-head">
+
+      <div>
+
+        <span class="bi-panel-label">
+          AGENDA
+        </span>
+
+        <h2>
+          Próximas ações
+        </h2>
+
+      </div>
+
+      <span class="muted">
+        Vencidas ou previstas para os próximos 7 dias
+      </span>
+
+    </div>
+
+
+    <div class="bi-table-wrap">
+
+      <table class="bi-table">
 
         <thead>
 
@@ -286,49 +690,47 @@
 
     </div>
 
-    <div class="split">
+  </section>
 
-      <section class="panel">
+
+  <!-- ATENÇÃO -->
+
+  <section class="bi-table-section">
+
+    <div class="bi-panel-head">
+
+      <div>
+
+        <span class="bi-panel-label danger-label">
+          ATENÇÃO
+        </span>
 
         <h2>
-          Projetos por etapa
+          Projetos que exigem atenção
         </h2>
 
-        <div id="porEtapa"></div>
+      </div>
 
-      </section>
-
-      <section class="panel">
-
-        <h2>
-          Onde estão as pendências
-        </h2>
-
-        <div id="porArea"></div>
-
-      </section>
+      <span class="muted">
+        Projetos com pendências ou prazos críticos
+      </span>
 
     </div>
 
-    <h2>
-      Projetos que pedem atenção
-    </h2>
 
-    <div class="panel table-scroll">
+    <div class="bi-table-wrap">
 
-      <table>
+      <table class="bi-table">
 
         <thead>
 
           <tr>
-
             <th>ID</th>
             <th>Cliente</th>
             <th>Projeto</th>
             <th>Situação</th>
             <th>Próxima ação</th>
             <th>Prazo</th>
-
           </tr>
 
         </thead>
@@ -339,11 +741,13 @@
 
     </div>
 
-  </main>
+  </section>
 
-  <script src="/js/auth.js"></script>
-  <script src="/js/dashboard.js"></script>
+</main>
+
+
+<script src="/js/auth.js"></script>
+<script src="/js/dashboard.js"></script>
 
 </body>
-
 </html>
