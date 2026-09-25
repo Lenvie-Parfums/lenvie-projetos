@@ -93,7 +93,645 @@ function normalizarEmail(valor) {
     .trim()
     .toLowerCase();
 }
+// ============================================================
+// NOTIFICAÇÕES POR E-MAIL
+// ============================================================
 
+function normalizarNome(valor) {
+  return String(valor || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+
+async function resolverDestinatariosNotificacao(
+  projeto,
+  body
+) {
+
+  const emails = new Set();
+  const naoEncontrados = [];
+
+  const usuarios = (
+    await pool.query(`
+      SELECT
+        nome,
+        email
+      FROM usuarios
+      WHERE ativo=TRUE
+    `)
+  ).rows;
+
+
+  function adicionarResponsavel(
+    valor,
+    tipo
+  ) {
+
+    const texto =
+      String(valor || '').trim();
+
+    if (!texto) {
+      return;
+    }
+
+
+    // Caso o próprio campo já contenha um e-mail.
+    if (texto.includes('@')) {
+
+      emails.add(
+        normalizarEmail(texto)
+      );
+
+      return;
+    }
+
+
+    const nomeProcurado =
+      normalizarNome(texto);
+
+
+    const usuario =
+      usuarios.find(
+        item =>
+          normalizarNome(item.nome) ===
+          nomeProcurado
+      );
+
+
+    if (usuario?.email) {
+
+      emails.add(
+        normalizarEmail(
+          usuario.email
+        )
+      );
+
+    } else {
+
+      naoEncontrados.push(
+        `${tipo}: ${texto}`
+      );
+    }
+  }
+
+
+  // Responsável comercial
+  if (
+    body.notificar_comercial === true
+  ) {
+
+    adicionarResponsavel(
+      projeto.comercial_responsavel,
+      'Responsável Comercial'
+    );
+  }
+
+
+  // Responsável pelo projeto
+  if (
+    body.notificar_projeto === true
+  ) {
+
+    adicionarResponsavel(
+      projeto.responsavel,
+      'Responsável pelo Projeto'
+    );
+  }
+
+
+  // E-mail adicional
+  const emailAdicional =
+    normalizarEmail(
+      body.notificacao_email_adicional
+    );
+
+
+  if (emailAdicional) {
+
+    emails.add(
+      emailAdicional
+    );
+  }
+
+
+  return {
+    emails: [...emails],
+    naoEncontrados
+  };
+}
+
+
+async function enviarNotificacaoProjeto({
+  projeto,
+  body,
+  destinatarios,
+  usuarioNome
+}) {
+
+  const apiKey =
+    process.env.RESEND_API_KEY;
+
+  const remetente =
+    process.env.NOTIFICATION_FROM;
+
+
+  if (!apiKey) {
+
+    throw new Error(
+      'RESEND_API_KEY não configurada.'
+    );
+  }
+
+
+  if (!remetente) {
+
+    throw new Error(
+      'NOTIFICATION_FROM não configurado.'
+    );
+  }
+
+
+  if (!destinatarios.length) {
+
+    throw new Error(
+      'Nenhum e-mail de destinatário foi encontrado.'
+    );
+  }
+
+
+  const motivo =
+    String(
+      body.notificacao_motivo ||
+      'Atualização do projeto'
+    ).trim();
+
+
+  const mensagem =
+    String(
+      body.notificacao_mensagem ||
+      ''
+    ).trim();
+
+
+  const observacao =
+    String(
+      body.movimentacao_observacao ||
+      ''
+    ).trim();
+
+
+  const assunto =
+    `LENVIE | ${motivo} - ${projeto.cliente} / ${projeto.nome}`;
+
+
+  const html = `
+    <!DOCTYPE html>
+
+    <html lang="pt-BR">
+
+    <head>
+      <meta charset="UTF-8">
+    </head>
+
+    <body
+      style="
+        margin:0;
+        padding:0;
+        background:#f4f4f4;
+        font-family:Arial,sans-serif;
+        color:#222;
+      "
+    >
+
+      <div
+        style="
+          max-width:680px;
+          margin:30px auto;
+          background:#ffffff;
+          border-radius:10px;
+          overflow:hidden;
+          border:1px solid #e5e5e5;
+        "
+      >
+
+        <div
+          style="
+            background:#66745c;
+            color:#ffffff;
+            padding:22px 26px;
+          "
+        >
+
+          <div
+            style="
+              font-size:12px;
+              text-transform:uppercase;
+              letter-spacing:1px;
+              opacity:.85;
+            "
+          >
+            LENVIE Projetos
+          </div>
+
+          <h2
+            style="
+              margin:6px 0 0;
+              font-size:22px;
+            "
+          >
+            ${escapeHtml(motivo)}
+          </h2>
+
+        </div>
+
+
+        <div
+          style="
+            padding:26px;
+          "
+        >
+
+          <p
+            style="
+              margin-top:0;
+              color:#555;
+            "
+          >
+            Houve uma movimentação em um projeto.
+          </p>
+
+
+          <table
+            width="100%"
+            cellpadding="8"
+            cellspacing="0"
+            style="
+              border-collapse:collapse;
+              font-size:14px;
+            "
+          >
+
+            <tr>
+              <td
+                style="
+                  width:170px;
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                <strong>Código</strong>
+              </td>
+
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                ${escapeHtml(
+                  projeto.codigo || '—'
+                )}
+              </td>
+            </tr>
+
+
+            <tr>
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                <strong>Cliente</strong>
+              </td>
+
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                ${escapeHtml(
+                  projeto.cliente || '—'
+                )}
+              </td>
+            </tr>
+
+
+            <tr>
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                <strong>Projeto</strong>
+              </td>
+
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                ${escapeHtml(
+                  projeto.nome || '—'
+                )}
+              </td>
+            </tr>
+
+
+            <tr>
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                <strong>Status</strong>
+              </td>
+
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                ${escapeHtml(
+                  projeto.status || '—'
+                )}
+              </td>
+            </tr>
+
+
+            <tr>
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                <strong>Etapa</strong>
+              </td>
+
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                ${escapeHtml(
+                  projeto.etapa_atual || '—'
+                )}
+              </td>
+            </tr>
+
+
+            <tr>
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                <strong>Aguardando</strong>
+              </td>
+
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                ${escapeHtml(
+                  projeto.area_pendente ||
+                  'Sem pendência'
+                )}
+              </td>
+            </tr>
+
+
+            <tr>
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                <strong>Próxima ação</strong>
+              </td>
+
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                ${escapeHtml(
+                  projeto.proxima_acao || '—'
+                )}
+              </td>
+            </tr>
+
+
+            <tr>
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                <strong>Prazo da ação</strong>
+              </td>
+
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                ${escapeHtml(
+                  dataBR(
+                    projeto.prazo_proxima_acao
+                  )
+                )}
+              </td>
+            </tr>
+
+
+            <tr>
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                <strong>Responsável</strong>
+              </td>
+
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                ${escapeHtml(
+                  projeto.responsavel || '—'
+                )}
+              </td>
+            </tr>
+
+
+            <tr>
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                <strong>Comercial</strong>
+              </td>
+
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                ${escapeHtml(
+                  projeto.comercial_responsavel ||
+                  '—'
+                )}
+              </td>
+            </tr>
+
+
+            <tr>
+              <td>
+                <strong>Atualizado por</strong>
+              </td>
+
+              <td>
+                ${escapeHtml(
+                  usuarioNome ||
+                  'LENVIE Projetos'
+                )}
+              </td>
+            </tr>
+
+          </table>
+
+
+          ${
+            observacao
+              ? `
+                <div
+                  style="
+                    margin-top:22px;
+                    padding:15px;
+                    background:#f7f7f5;
+                    border-radius:6px;
+                  "
+                >
+
+                  <strong>
+                    Observação da movimentação
+                  </strong>
+
+                  <div
+                    style="
+                      margin-top:7px;
+                      white-space:pre-wrap;
+                    "
+                  >
+                    ${escapeHtml(observacao)}
+                  </div>
+
+                </div>
+              `
+              : ''
+          }
+
+
+          ${
+            mensagem
+              ? `
+                <div
+                  style="
+                    margin-top:16px;
+                    padding:15px;
+                    background:#f7f7f5;
+                    border-radius:6px;
+                  "
+                >
+
+                  <strong>
+                    Mensagem
+                  </strong>
+
+                  <div
+                    style="
+                      margin-top:7px;
+                      white-space:pre-wrap;
+                    "
+                  >
+                    ${escapeHtml(mensagem)}
+                  </div>
+
+                </div>
+              `
+              : ''
+          }
+
+
+          <p
+            style="
+              margin:24px 0 0;
+              font-size:12px;
+              color:#777;
+            "
+          >
+            Esta mensagem foi enviada pelo
+            sistema LENVIE Projetos.
+          </p>
+
+        </div>
+
+      </div>
+
+    </body>
+
+    </html>
+  `;
+
+
+  const resposta =
+    await fetch(
+      'https://api.resend.com/emails',
+      {
+        method: 'POST',
+
+        headers: {
+          Authorization:
+            `Bearer ${apiKey}`,
+
+          'Content-Type':
+            'application/json'
+        },
+
+        body:
+          JSON.stringify({
+            from: remetente,
+            to: destinatarios,
+            subject: assunto,
+            html
+          })
+      }
+    );
+
+
+  const retorno =
+    await resposta
+      .json()
+      .catch(
+        () => ({})
+      );
+
+
+  if (!resposta.ok) {
+
+    throw new Error(
+      retorno?.message ||
+      `Falha no envio do e-mail. HTTP ${resposta.status}.`
+    );
+  }
+
+
+  return retorno;
+}
 function parseCookies(req) {
   const cabecalho =
     req.headers.cookie || '';
@@ -2516,15 +3154,200 @@ app.put(
         }
       );
 
+          // ========================================================
+      // CONFIRMA A ATUALIZAÇÃO DO PROJETO
+      // ========================================================
 
       await c.query(
         'COMMIT'
       );
 
 
-      res.json(
-        q.rows[0]
-      );
+      // ========================================================
+      // NOTIFICAÇÃO OPCIONAL
+      // ========================================================
+
+      let notificacao = null;
+
+
+      if (
+        b.notificar_responsaveis === true
+      ) {
+
+        try {
+
+          /*
+           * A alteração do projeto já foi confirmada
+           * no banco acima.
+           *
+           * Portanto qualquer falha na notificação
+           * NÃO desfaz a atualização do projeto.
+           */
+
+          const destinatarios =
+            await resolverDestinatariosNotificacao(
+              q.rows[0],
+              b
+            );
+
+
+          const retornoEnvio =
+            await enviarNotificacaoProjeto({
+
+              projeto:
+                q.rows[0],
+
+              body:
+                b,
+
+              destinatarios:
+                destinatarios.emails,
+
+              usuarioNome:
+                req.usuario.nome
+            });
+
+
+          notificacao = {
+
+            enviada:
+              true,
+
+            destinatarios:
+              destinatarios.emails,
+
+            nao_encontrados:
+              destinatarios.naoEncontrados,
+
+            id:
+              retornoEnvio.id ||
+              null
+          };
+
+
+          // ====================================================
+          // REGISTRA O ENVIO NO HISTÓRICO
+          // ====================================================
+
+          try {
+
+            const motivo =
+              String(
+                b.notificacao_motivo ||
+                'Atualização do projeto'
+              ).trim();
+
+
+            const textoDestinatarios =
+              destinatarios.emails.join(', ');
+
+
+            await pool.query(
+              `
+              INSERT INTO historico_etapas (
+
+                projeto_id,
+                etapa,
+                area_pendente,
+                situacao,
+                pendencia_proximo_passo,
+                observacoes,
+                usuario_id,
+                usuario_nome,
+                data_movimentacao
+
+              )
+
+              VALUES (
+
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                $6,
+                $7,
+                $8,
+                COALESCE(
+                  $9::date,
+                  CURRENT_DATE
+                )
+
+              )
+              `,
+              [
+                req.params.id,
+
+                q.rows[0].etapa_atual,
+
+                q.rows[0].area_pendente,
+
+                'Notificação enviada',
+
+                q.rows[0].proxima_acao,
+
+                `Motivo: ${motivo} | Destinatários: ${textoDestinatarios}`,
+
+                req.usuario.id,
+
+                req.usuario.nome,
+
+                b.data_movimentacao ||
+                  null
+              ]
+            );
+
+
+          } catch (
+            erroHistoricoNotificacao
+          ) {
+
+            /*
+             * O e-mail já foi enviado.
+             *
+             * Uma eventual falha ao registrar
+             * o histórico não transforma o envio
+             * em falha.
+             */
+
+            console.error(
+              'Notificação enviada, mas não foi possível registrar no histórico:',
+              erroHistoricoNotificacao
+            );
+          }
+
+
+        } catch (
+          erroNotificacao
+        ) {
+
+          console.error(
+            'Erro ao enviar notificação do projeto:',
+            erroNotificacao
+          );
+
+
+          notificacao = {
+
+            enviada:
+              false,
+
+            erro:
+              erroNotificacao.message
+          };
+        }
+      }
+
+
+      // ========================================================
+      // RESPOSTA
+      // ========================================================
+
+      res.json({
+        ...q.rows[0],
+        notificacao
+      });
+      
 
     } catch (erro) {
 
