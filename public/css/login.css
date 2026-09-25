@@ -7,102 +7,260 @@
   color: #172033;
 }
 
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 32px;
+
   background-image:
     linear-gradient(
-      rgba(17, 24, 39, 0.42),
-      rgba(17, 24, 39, 0.42)
+      rgba(10, 20, 18, 0.18),
+      rgba(10, 20, 18, 0.28)
     ),
     url("/assets/lenvie-background.jpg");
+
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  background-attachment: fixed;
 }
+
+
+/* ============================================================
+   CARD
+   ============================================================ */
 
 .login-card {
-  width: min(100%, 430px);
-  padding: 32px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
+  width: min(100%, 500px);
+
+  padding: 46px 48px;
+
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 24px;
+
+  background: rgba(255, 255, 255, 0.92);
+
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.28);
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
+
+/* ============================================================
+   MARCA / TÍTULO
+   ============================================================ */
+
 .login-brand {
-  margin-bottom: 26px;
+  margin-bottom: 34px;
   text-align: center;
 }
 
 .login-brand img {
   display: block;
-  width: min(230px, 80%);
-  max-height: 70px;
-  margin: 0 auto 16px;
+
+  width: min(210px, 70%);
+  max-height: 65px;
+
+  margin: 0 auto 22px;
+
   object-fit: contain;
 }
 
 .login-brand h1 {
   margin: 0;
-  font-size: 26px;
+
+  color: #172033;
+
+  font-size: 30px;
+  font-weight: 750;
+  line-height: 1.2;
 }
 
 .login-brand p {
-  margin: 7px 0 0;
+  margin: 9px 0 0;
+
   color: #64748b;
-  font-size: 14px;
+
+  font-size: 15px;
+  line-height: 1.5;
 }
+
+
+/* ============================================================
+   FORMULÁRIO
+   ============================================================ */
 
 .login-form {
   display: grid;
-  gap: 16px;
+  gap: 20px;
 }
 
 .login-form label {
   display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
+
+  margin-bottom: 8px;
+
+  color: #172033;
+
+  font-size: 14px;
   font-weight: 700;
 }
 
 .login-form input {
   width: 100%;
-  padding: 12px;
+  height: 52px;
+
+  padding: 0 15px;
+
   border: 1px solid #cbd5e1;
-  border-radius: 9px;
-  background: #fff;
+  border-radius: 11px;
+
+  background: rgba(255, 255, 255, 0.9);
+
+  color: #172033;
+
   font: inherit;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.login-form input:hover {
+  border-color: #94a3b8;
 }
 
 .login-form input:focus {
-  outline: 2px solid rgba(31, 78, 120, 0.18);
+  outline: none;
+
   border-color: #1f4e78;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 0 0 4px rgba(31, 78, 120, 0.12);
 }
+
+
+/* ============================================================
+   BOTÃO
+   ============================================================ */
 
 .login-button {
   width: 100%;
-  padding: 12px 16px;
+  height: 52px;
+
+  margin-top: 4px;
+
+  padding: 0 18px;
+
   border: 0;
-  border-radius: 9px;
+  border-radius: 11px;
+
   background: #1f4e78;
-  color: #fff;
+
+  color: #ffffff;
+
   font: inherit;
+  font-size: 16px;
   font-weight: 700;
+
   cursor: pointer;
+
+  box-shadow:
+    0 8px 18px rgba(31, 78, 120, 0.22);
+
+  transition:
+    transform 0.15s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.login-button:hover {
+  background: #173d60;
+
+  box-shadow:
+    0 10px 24px rgba(31, 78, 120, 0.3);
+
+  transform: translateY(-1px);
+}
+
+.login-button:active {
+  transform: translateY(0);
 }
 
 .login-button:disabled {
   opacity: 0.65;
   cursor: wait;
+  transform: none;
 }
 
+
+/* ============================================================
+   ERRO
+   ============================================================ */
+
 .login-error {
-  min-height: 20px;
-  margin: 0;
+  min-height: 18px;
+
+  margin: -4px 0;
+
   color: #b42318;
+
   font-size: 13px;
+  font-weight: 600;
+
   text-align: center;
+}
+
+
+/* ============================================================
+   RESPONSIVO
+   ============================================================ */
+
+@media (max-width: 600px) {
+
+  body {
+    padding: 18px;
+    background-attachment: scroll;
+  }
+
+  .login-card {
+    width: 100%;
+
+    padding: 34px 24px;
+
+    border-radius: 20px;
+  }
+
+  .login-brand {
+    margin-bottom: 28px;
+  }
+
+  .login-brand img {
+    width: min(190px, 75%);
+    margin-bottom: 18px;
+  }
+
+  .login-brand h1 {
+    font-size: 25px;
+  }
+
+  .login-brand p {
+    font-size: 14px;
+  }
 }
