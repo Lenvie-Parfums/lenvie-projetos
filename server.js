@@ -68,18 +68,21 @@ const PERMISSOES = {
     exportar: true,
     gerenciar_usuarios: true
   },
+
   gestor: {
     criar: true,
     editar: true,
     exportar: true,
     gerenciar_usuarios: false
   },
+
   editor: {
     criar: false,
     editar: true,
     exportar: true,
     gerenciar_usuarios: false
   },
+
   visualizador: {
     criar: false,
     editar: false,
@@ -88,16 +91,21 @@ const PERMISSOES = {
   }
 };
 
+
 function normalizarEmail(valor) {
+
   return String(valor || '')
     .trim()
     .toLowerCase();
 }
+
+
 // ============================================================
 // NOTIFICAÇÕES POR E-MAIL
 // ============================================================
 
 function normalizarNome(valor) {
+
   return String(valor || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -111,18 +119,23 @@ async function resolverDestinatariosNotificacao(
   body
 ) {
 
-  const emails = new Set();
-  const naoEncontrados = [];
+  const emails =
+    new Set();
 
-  const usuarios = (
-    await pool.query(`
-      SELECT
-        nome,
-        email
-      FROM usuarios
-      WHERE ativo=TRUE
-    `)
-  ).rows;
+  const naoEncontrados =
+    [];
+
+
+  const usuarios =
+    (
+      await pool.query(`
+        SELECT
+          nome,
+          email
+        FROM usuarios
+        WHERE ativo=TRUE
+      `)
+    ).rows;
 
 
   function adicionarResponsavel(
@@ -375,6 +388,7 @@ async function enviarNotificacaoProjeto({
           >
 
             <tr>
+
               <td
                 style="
                   width:170px;
@@ -393,10 +407,12 @@ async function enviarNotificacaoProjeto({
                   projeto.codigo || '—'
                 )}
               </td>
+
             </tr>
 
 
             <tr>
+
               <td
                 style="
                   border-bottom:1px solid #eeeeee;
@@ -414,10 +430,12 @@ async function enviarNotificacaoProjeto({
                   projeto.cliente || '—'
                 )}
               </td>
+
             </tr>
 
 
             <tr>
+
               <td
                 style="
                   border-bottom:1px solid #eeeeee;
@@ -435,10 +453,33 @@ async function enviarNotificacaoProjeto({
                   projeto.nome || '—'
                 )}
               </td>
+
+            </tr>
+          
+                         <tr>
+
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                <strong>Ramo</strong>
+              </td>
+
+              <td
+                style="
+                  border-bottom:1px solid #eeeeee;
+                "
+              >
+                ${escapeHtml(
+                  projeto.ramo || '—'
+                )}
+              </td>
+
             </tr>
 
-
             <tr>
+
               <td
                 style="
                   border-bottom:1px solid #eeeeee;
@@ -456,10 +497,12 @@ async function enviarNotificacaoProjeto({
                   projeto.status || '—'
                 )}
               </td>
+
             </tr>
 
 
             <tr>
+
               <td
                 style="
                   border-bottom:1px solid #eeeeee;
@@ -477,10 +520,12 @@ async function enviarNotificacaoProjeto({
                   projeto.etapa_atual || '—'
                 )}
               </td>
+
             </tr>
 
 
             <tr>
+
               <td
                 style="
                   border-bottom:1px solid #eeeeee;
@@ -499,10 +544,12 @@ async function enviarNotificacaoProjeto({
                   'Sem pendência'
                 )}
               </td>
+
             </tr>
 
 
             <tr>
+
               <td
                 style="
                   border-bottom:1px solid #eeeeee;
@@ -520,10 +567,12 @@ async function enviarNotificacaoProjeto({
                   projeto.proxima_acao || '—'
                 )}
               </td>
+
             </tr>
 
 
             <tr>
+
               <td
                 style="
                   border-bottom:1px solid #eeeeee;
@@ -543,10 +592,12 @@ async function enviarNotificacaoProjeto({
                   )
                 )}
               </td>
+
             </tr>
 
 
             <tr>
+
               <td
                 style="
                   border-bottom:1px solid #eeeeee;
@@ -564,10 +615,12 @@ async function enviarNotificacaoProjeto({
                   projeto.responsavel || '—'
                 )}
               </td>
+
             </tr>
 
 
             <tr>
+
               <td
                 style="
                   border-bottom:1px solid #eeeeee;
@@ -586,10 +639,12 @@ async function enviarNotificacaoProjeto({
                   '—'
                 )}
               </td>
+
             </tr>
 
 
             <tr>
+
               <td>
                 <strong>Atualizado por</strong>
               </td>
@@ -600,6 +655,7 @@ async function enviarNotificacaoProjeto({
                   'LENVIE Projetos'
                 )}
               </td>
+
             </tr>
 
           </table>
@@ -732,7 +788,10 @@ async function enviarNotificacaoProjeto({
 
   return retorno;
 }
+
+
 function parseCookies(req) {
+
   const cabecalho =
     req.headers.cookie || '';
 
@@ -742,6 +801,7 @@ function parseCookies(req) {
       .map(item => item.trim())
       .filter(Boolean)
       .map(item => {
+
         const indice =
           item.indexOf('=');
 
@@ -761,14 +821,18 @@ function parseCookies(req) {
   );
 }
 
+
 function hashToken(token) {
+
   return crypto
     .createHash('sha256')
     .update(token)
     .digest('hex');
 }
 
+
 function hashSenha(senha) {
+
   const salt =
     crypto
       .randomBytes(16)
@@ -786,11 +850,14 @@ function hashSenha(senha) {
   return `scrypt$${salt}$${hash}`;
 }
 
+
 function validarSenha(
   senha,
   senhaHash
 ) {
+
   try {
+
     const [
       algoritmo,
       salt,
@@ -804,8 +871,10 @@ function validarSenha(
       !salt ||
       !hashSalvo
     ) {
+
       return false;
     }
+
 
     const hashInformado =
       crypto.scryptSync(
@@ -820,9 +889,11 @@ function validarSenha(
         'hex'
       );
 
+
     return (
       hashBanco.length ===
         hashInformado.length &&
+
       crypto.timingSafeEqual(
         hashBanco,
         hashInformado
@@ -830,35 +901,45 @@ function validarSenha(
     );
 
   } catch {
+
     return false;
   }
 }
+
 
 function cookieSessao(
   token,
   limpar = false
 ) {
+
   const partes = [
+
     `${COOKIE_SESSAO}=${
       limpar
         ? ''
         : encodeURIComponent(token)
     }`,
+
     'Path=/',
     'HttpOnly',
     'SameSite=Lax'
   ];
 
+
   if (
     process.env.NODE_ENV ===
     'production'
   ) {
+
     partes.push('Secure');
   }
 
+
   partes.push(
     limpar
+
       ? 'Max-Age=0'
+
       : `Max-Age=${
           DURACAO_SESSAO_HORAS *
           60 *
@@ -866,23 +947,29 @@ function cookieSessao(
         }`
   );
 
+
   return partes.join('; ');
 }
 
+
 function permissoesDoPerfil(perfil) {
+
   return (
     PERMISSOES[perfil] ||
     PERMISSOES.visualizador
   );
 }
 
+
 async function carregarUsuario(req) {
+
   const token =
     parseCookies(req)[COOKIE_SESSAO];
 
   if (!token) {
     return null;
   }
+
 
   const q =
     await pool.query(
@@ -893,31 +980,42 @@ async function carregarUsuario(req) {
         u.email,
         u.perfil,
         u.ativo
+
       FROM sessoes s
+
       JOIN usuarios u
         ON u.id=s.usuario_id
+
       WHERE
         s.token_hash=$1
         AND s.expira_em>NOW()
         AND u.ativo=TRUE
+
       LIMIT 1
       `,
-      [hashToken(token)]
+      [
+        hashToken(token)
+      ]
     );
+
 
   return q.rows[0] || null;
 }
+
 
 async function exigirLogin(
   req,
   res,
   next
 ) {
+
   try {
+
     const usuario =
       await carregarUsuario(req);
 
     if (!usuario) {
+
       return res
         .status(401)
         .json({
@@ -926,28 +1024,35 @@ async function exigirLogin(
         });
     }
 
+
     req.usuario =
       usuario;
 
     next();
 
   } catch (erro) {
+
     next(erro);
   }
 }
 
+
 function exigirPermissao(permissao) {
+
   return (
     req,
     res,
     next
   ) => {
+
     const permissoes =
       permissoesDoPerfil(
         req.usuario?.perfil
       );
 
+
     if (!permissoes[permissao]) {
+
       return res
         .status(403)
         .json({
@@ -956,9 +1061,11 @@ function exigirPermissao(permissao) {
         });
     }
 
+
     next();
   };
 }
+
 
 async function paginaProtegida(
   req,
@@ -966,37 +1073,46 @@ async function paginaProtegida(
   arquivo,
   opcoes = {}
 ) {
+
   try {
+
     const usuario =
       await carregarUsuario(req);
 
     if (!usuario) {
+
       return res.redirect(
         '/login.html'
       );
     }
+
 
     const permissoes =
       permissoesDoPerfil(
         usuario.perfil
       );
 
+
     if (
       opcoes.apenasAdmin &&
       !permissoes.gerenciar_usuarios
     ) {
+
       return res.redirect('/');
     }
+
 
     if (
       opcoes.novoProjeto &&
       !req.query.id &&
       !permissoes.criar
     ) {
+
       return res.redirect(
         '/projetos.html'
       );
     }
+
 
     return res.sendFile(
       path.join(
@@ -1006,74 +1122,166 @@ async function paginaProtegida(
     );
 
   } catch (erro) {
+
     console.error(erro);
 
     return res
       .status(500)
-      .send('Erro ao validar acesso.');
+      .send(
+        'Erro ao validar acesso.'
+      );
   }
 }
 
+
+// ============================================================
+// ESTRUTURA DE AUTENTICAÇÃO / BANCO
+// ============================================================
+
 async function garantirEstruturaAuth() {
+
   await pool.query(`
+
     CREATE TABLE IF NOT EXISTS usuarios (
+
       id SERIAL PRIMARY KEY,
+
       nome VARCHAR(120) NOT NULL,
-      email VARCHAR(180) UNIQUE NOT NULL,
+
+      email VARCHAR(180)
+        UNIQUE
+        NOT NULL,
+
       senha_hash TEXT NOT NULL,
-      perfil VARCHAR(30) NOT NULL DEFAULT 'visualizador',
-      ativo BOOLEAN NOT NULL DEFAULT TRUE,
-      criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+      perfil VARCHAR(30)
+        NOT NULL
+        DEFAULT 'visualizador',
+
+      ativo BOOLEAN
+        NOT NULL
+        DEFAULT TRUE,
+
+      criado_em TIMESTAMPTZ
+        NOT NULL
+        DEFAULT NOW(),
+
+      atualizado_em TIMESTAMPTZ
+        NOT NULL
+        DEFAULT NOW(),
+
       ultimo_acesso TIMESTAMPTZ
+
     );
+
 
     CREATE TABLE IF NOT EXISTS sessoes (
+
       id BIGSERIAL PRIMARY KEY,
-      usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-      token_hash VARCHAR(64) UNIQUE NOT NULL,
-      criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      expira_em TIMESTAMPTZ NOT NULL
+
+      usuario_id INTEGER
+        NOT NULL
+        REFERENCES usuarios(id)
+        ON DELETE CASCADE,
+
+      token_hash VARCHAR(64)
+        UNIQUE
+        NOT NULL,
+
+      criado_em TIMESTAMPTZ
+        NOT NULL
+        DEFAULT NOW(),
+
+      expira_em TIMESTAMPTZ
+        NOT NULL
+
     );
 
-    CREATE INDEX IF NOT EXISTS idx_sessoes_token
+
+    CREATE INDEX IF NOT EXISTS
+      idx_sessoes_token
       ON sessoes(token_hash);
 
-    CREATE INDEX IF NOT EXISTS idx_sessoes_expira
+
+    CREATE INDEX IF NOT EXISTS
+      idx_sessoes_expira
       ON sessoes(expira_em);
 
+
     CREATE TABLE IF NOT EXISTS auditoria (
+
       id BIGSERIAL PRIMARY KEY,
-      usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+
+      usuario_id INTEGER
+        REFERENCES usuarios(id)
+        ON DELETE SET NULL,
+
       usuario_nome VARCHAR(120),
-      acao VARCHAR(80) NOT NULL,
+
+      acao VARCHAR(80)
+        NOT NULL,
+
       entidade VARCHAR(80),
+
       entidade_id INTEGER,
+
       detalhes JSONB,
-      criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+
+      criado_em TIMESTAMPTZ
+        NOT NULL
+        DEFAULT NOW()
+
     );
 
-    ALTER TABLE IF EXISTS historico_etapas
-      ADD COLUMN IF NOT EXISTS usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL;
 
     ALTER TABLE IF EXISTS historico_etapas
-      ADD COLUMN IF NOT EXISTS usuario_nome VARCHAR(120);
+      ADD COLUMN IF NOT EXISTS usuario_id
+      INTEGER
+      REFERENCES usuarios(id)
+      ON DELETE SET NULL;
+
 
     ALTER TABLE IF EXISTS historico_etapas
-      ADD COLUMN IF NOT EXISTS data_movimentacao DATE;
+      ADD COLUMN IF NOT EXISTS usuario_nome
+      VARCHAR(120);
+
+
+    ALTER TABLE IF EXISTS historico_etapas
+      ADD COLUMN IF NOT EXISTS data_movimentacao
+      DATE;
+
 
     UPDATE historico_etapas
-    SET data_movimentacao = data_registro::date
-    WHERE data_movimentacao IS NULL;
+
+    SET
+      data_movimentacao =
+        data_registro::date
+
+    WHERE
+      data_movimentacao IS NULL;
+
 
     ALTER TABLE IF EXISTS historico_etapas
-      ALTER COLUMN data_movimentacao SET DEFAULT CURRENT_DATE;
+      ALTER COLUMN data_movimentacao
+      SET DEFAULT CURRENT_DATE;
+
+
+    -- ========================================================
+    -- RAMO DO PROJETO
+    -- ========================================================
+
+    ALTER TABLE IF EXISTS projetos
+      ADD COLUMN IF NOT EXISTS ramo
+      VARCHAR(120);
+
   `);
+
 
   await pool.query(`
     DELETE FROM sessoes
     WHERE expira_em<=NOW()
   `);
+
 
   const total =
     await pool.query(`
@@ -1081,7 +1289,11 @@ async function garantirEstruturaAuth() {
       FROM usuarios
     `);
 
-  if (total.rows[0].total === 0) {
+
+  if (
+    total.rows[0].total === 0
+  ) {
+
     const email =
       normalizarEmail(
         process.env.ADMIN_EMAIL
@@ -1094,12 +1306,16 @@ async function garantirEstruturaAuth() {
       process.env.ADMIN_NAME ||
       'Administrador';
 
+
     if (email && senha) {
+
       if (senha.length < 8) {
+
         throw new Error(
           'ADMIN_PASSWORD deve possuir pelo menos 8 caracteres.'
         );
       }
+
 
       await pool.query(
         `
@@ -1110,7 +1326,14 @@ async function garantirEstruturaAuth() {
           perfil,
           ativo
         )
-        VALUES ($1,$2,$3,'administrador',TRUE)
+
+        VALUES (
+          $1,
+          $2,
+          $3,
+          'administrador',
+          TRUE
+        )
         `,
         [
           nome,
@@ -1119,17 +1342,20 @@ async function garantirEstruturaAuth() {
         ]
       );
 
+
       console.log(
         `Usuário administrador inicial criado: ${email}`
       );
 
     } else {
+
       console.warn(
         'Nenhum usuário cadastrado. Defina ADMIN_EMAIL e ADMIN_PASSWORD no ambiente para criar o administrador inicial.'
       );
     }
   }
 }
+
 
 async function registrarAuditoria(
   client,
@@ -1139,6 +1365,7 @@ async function registrarAuditoria(
   entidadeId,
   detalhes = {}
 ) {
+
   await client.query(
     `
     INSERT INTO auditoria (
@@ -1149,7 +1376,15 @@ async function registrarAuditoria(
       entidade_id,
       detalhes
     )
-    VALUES ($1,$2,$3,$4,$5,$6::jsonb)
+
+    VALUES (
+      $1,
+      $2,
+      $3,
+      $4,
+      $5,
+      $6::jsonb
+    )
     `,
     [
       req.usuario?.id || null,
@@ -1157,11 +1392,12 @@ async function registrarAuditoria(
       acao,
       entidade,
       entidadeId || null,
-      JSON.stringify(detalhes || {})
+      JSON.stringify(
+        detalhes || {}
+      )
     ]
   );
 }
-
 // ============================================================
 // PÁGINAS
 // ============================================================
@@ -1245,6 +1481,7 @@ app.get(
       }
     )
 );
+
 
 // ============================================================
 // API DE AUTENTICAÇÃO
@@ -1415,6 +1652,7 @@ app.use(
   exigirLogin
 );
 
+
 // ============================================================
 // USUÁRIOS
 // ============================================================
@@ -1552,6 +1790,7 @@ app.post(
         .json(q.rows[0]);
 
     } catch (erro) {
+
       if (erro.code === '23505') {
         return res
           .status(409)
@@ -1733,6 +1972,7 @@ app.put(
       res.json(q.rows[0]);
 
     } catch (erro) {
+
       if (erro.code === '23505') {
         return res
           .status(409)
@@ -1746,6 +1986,7 @@ app.put(
     }
   }
 );
+
 
 // ============================================================
 // CONFIGURAÇÕES
@@ -1789,11 +2030,17 @@ const codigo = n =>
   `PRJ-${String(n).padStart(3, '0')}`;
 
 const keep = (v, atual) =>
-  (v === undefined || v === null || v === '')
+  (v === undefined ||
+   v === null ||
+   v === '')
     ? atual
     : v;
 
-const nullable = (body, key, atual) =>
+const nullable = (
+  body,
+  key,
+  atual
+) =>
   body[key] === undefined
     ? atual
     : (body[key] || null);
@@ -1891,7 +2138,9 @@ function dataBR(valor) {
     return '—';
   }
 
-  return data.toLocaleDateString('pt-BR');
+  return data.toLocaleDateString(
+    'pt-BR'
+  );
 }
 
 
@@ -1910,7 +2159,9 @@ function dataHoraBR(valor) {
     return '—';
   }
 
-  return data.toLocaleString('pt-BR');
+  return data.toLocaleString(
+    'pt-BR'
+  );
 }
 
 
@@ -1944,10 +2195,11 @@ function autoWidth(ws) {
     let tamanho = 10;
 
     col.eachCell(
-      { includeEmpty: true },
+      {
+        includeEmpty: true
+      },
       cell => {
-
-        tamanho = Math.max(
+                tamanho = Math.max(
           tamanho,
           String(cell.value ?? '').length + 2
         );
@@ -1988,21 +2240,41 @@ app.get(
     try {
 
       const agora = new Date();
-      const anoInformado = Number(req.query.ano);
-      const mesInformado = Number(req.query.mes);
 
-      const ano = Number.isInteger(anoInformado) && anoInformado >= 2000 && anoInformado <= 2100
-        ? anoInformado
-        : agora.getFullYear();
+      const anoInformado =
+        Number(req.query.ano);
 
-      const mes = Number.isInteger(mesInformado) && mesInformado >= 1 && mesInformado <= 12
-        ? mesInformado
-        : agora.getMonth() + 1;
+      const mesInformado =
+        Number(req.query.mes);
 
-      const inicioPeriodo = `${ano}-${String(mes).padStart(2, '0')}-01`;
+
+      const ano =
+        Number.isInteger(anoInformado) &&
+        anoInformado >= 2000 &&
+        anoInformado <= 2100
+
+          ? anoInformado
+
+          : agora.getFullYear();
+
+
+      const mes =
+        Number.isInteger(mesInformado) &&
+        mesInformado >= 1 &&
+        mesInformado <= 12
+
+          ? mesInformado
+
+          : agora.getMonth() + 1;
+
+
+      const inicioPeriodo =
+        `${ano}-${String(mes).padStart(2, '0')}-01`;
+
 
       const resumo =
-        await pool.query(`
+        await pool.query(
+          `
           SELECT
 
             COUNT(*)::int cadastrados,
@@ -2029,71 +2301,137 @@ app.get(
 
             COUNT(*) FILTER(
               WHERE area_pendente='Cliente'
-              AND status NOT IN ('Concluído','Cancelado')
+              AND status NOT IN (
+                'Concluído',
+                'Cancelado'
+              )
             )::int aguardando_cliente,
 
             COUNT(*) FILTER(
               WHERE area_pendente='Produtos'
-              AND status NOT IN ('Concluído','Cancelado')
+              AND status NOT IN (
+                'Concluído',
+                'Cancelado'
+              )
             )::int aguardando_produtos,
 
             COUNT(*) FILTER(
               WHERE previsao_conclusao<CURRENT_DATE
-              AND status NOT IN ('Concluído','Cancelado')
+              AND status NOT IN (
+                'Concluído',
+                'Cancelado'
+              )
             )::int atrasados,
 
             COUNT(*) FILTER(
               WHERE prazo_proxima_acao<CURRENT_DATE
-              AND status NOT IN ('Concluído','Cancelado')
+              AND status NOT IN (
+                'Concluído',
+                'Cancelado'
+              )
             )::int acoes_vencidas,
 
             COUNT(*) FILTER(
               WHERE atualizado_em<NOW()-INTERVAL '15 days'
-              AND status NOT IN ('Concluído','Cancelado')
+              AND status NOT IN (
+                'Concluído',
+                'Cancelado'
+              )
             )::int sem_atualizacao,
 
             COUNT(*) FILTER(
               WHERE prazo_90_dias<CURRENT_DATE
-              AND status NOT IN ('Concluído','Cancelado')
+              AND status NOT IN (
+                'Concluído',
+                'Cancelado'
+              )
             )::int prazo90_vencido,
 
             COUNT(*) FILTER(
               WHERE prazo_90_dias
                 BETWEEN CURRENT_DATE
                 AND CURRENT_DATE+15
-              AND status NOT IN ('Concluído','Cancelado')
+              AND status NOT IN (
+                'Concluído',
+                'Cancelado'
+              )
             )::int prazo90_atencao,
 
             COUNT(*) FILTER(
               WHERE data_inicio >= $1::date
-                AND data_inicio < ($1::date + INTERVAL '1 month')::date
+                AND data_inicio < (
+                  $1::date +
+                  INTERVAL '1 month'
+                )::date
             )::int entradas_mes,
 
             (
-              SELECT COUNT(DISTINCT h.projeto_id)::int
+              SELECT
+                COUNT(
+                  DISTINCT h.projeto_id
+                )::int
+
               FROM historico_etapas h
+
               WHERE h.etapa IN (
                 'Concluído / Pedido Fechado',
                 'Concluído / Sem Conversão'
               )
-                AND COALESCE(h.data_movimentacao, h.data_registro::date) >= $1::date
-                AND COALESCE(h.data_movimentacao, h.data_registro::date) < ($1::date + INTERVAL '1 month')::date
+
+              AND COALESCE(
+                h.data_movimentacao,
+                h.data_registro::date
+              ) >= $1::date
+
+              AND COALESCE(
+                h.data_movimentacao,
+                h.data_registro::date
+              ) < (
+                $1::date +
+                INTERVAL '1 month'
+              )::date
+
             ) concluidos_mes,
 
             (
-              SELECT COUNT(DISTINCT h.projeto_id)::int
+              SELECT
+                COUNT(
+                  DISTINCT h.projeto_id
+                )::int
+
               FROM historico_etapas h
-              WHERE h.area_pendente='Cliente'
-                AND COALESCE(h.data_movimentacao, h.data_registro::date) >= $1::date
-                AND COALESCE(h.data_movimentacao, h.data_registro::date) < ($1::date + INTERVAL '1 month')::date
+
+              WHERE
+                h.area_pendente='Cliente'
+
+              AND COALESCE(
+                h.data_movimentacao,
+                h.data_registro::date
+              ) >= $1::date
+
+              AND COALESCE(
+                h.data_movimentacao,
+                h.data_registro::date
+              ) < (
+                $1::date +
+                INTERVAL '1 month'
+              )::date
+
             ) aguardando_cliente_mes,
 
             COALESCE(
               ROUND(
-                AVG(data_conclusao - data_inicio)
+                AVG(
+                  data_conclusao -
+                  data_inicio
+                )
                 FILTER(
-                  WHERE data_conclusao >= $1::date
-                    AND data_conclusao < ($1::date + INTERVAL '1 month')::date
+                  WHERE
+                    data_conclusao >= $1::date
+                    AND data_conclusao < (
+                      $1::date +
+                      INTERVAL '1 month'
+                    )::date
                 ),
                 1
               ),
@@ -2101,12 +2439,18 @@ app.get(
             )::float tempo_medio_mes_dias
 
           FROM projetos
-        `, [inicioPeriodo]);
+          `,
+          [
+            inicioPeriodo
+          ]
+        );
 
 
       const etapasQ =
-        await pool.query(`
+        await pool.query(
+          `
           SELECT
+
             etapa_atual nome,
             COUNT(*)::int total
 
@@ -2122,12 +2466,15 @@ app.get(
           ORDER BY
             total DESC,
             nome
-        `);
+          `
+        );
 
 
       const areasQ =
-        await pool.query(`
+        await pool.query(
+          `
           SELECT
+
             area_pendente nome,
             COUNT(*)::int total
 
@@ -2143,11 +2490,13 @@ app.get(
           ORDER BY
             total DESC,
             nome
-        `);
+          `
+        );
 
 
       const atencao =
-        await pool.query(`
+        await pool.query(
+          `
           SELECT
 
             id,
@@ -2163,7 +2512,8 @@ app.get(
             prazo_90_dias,
             atualizado_em,
 
-            ${situacaoSQL('p')} situacao
+            ${situacaoSQL('p')}
+              situacao
 
           FROM projetos p
 
@@ -2196,35 +2546,70 @@ app.get(
             ) NULLS LAST
 
           LIMIT 12
-        `);
+          `
+        );
 
 
       const lembretes =
-        await pool.query(`
+        await pool.query(
+          `
           SELECT
+
             id,
             codigo,
             cliente,
             nome,
             proxima_acao,
             prazo_proxima_acao,
-            (prazo_proxima_acao - CURRENT_DATE)::int dias_para_acao
+
+            (
+              prazo_proxima_acao -
+              CURRENT_DATE
+            )::int dias_para_acao
+
           FROM projetos
-          WHERE status NOT IN ('Concluído','Cancelado')
-            AND prazo_proxima_acao IS NOT NULL
-            AND prazo_proxima_acao <= CURRENT_DATE + 7
-          ORDER BY prazo_proxima_acao ASC, codigo ASC
+
+          WHERE
+            status NOT IN (
+              'Concluído',
+              'Cancelado'
+            )
+
+            AND prazo_proxima_acao
+              IS NOT NULL
+
+            AND prazo_proxima_acao
+              <= CURRENT_DATE + 7
+
+          ORDER BY
+            prazo_proxima_acao ASC,
+            codigo ASC
+
           LIMIT 20
-        `);
+          `
+        );
 
 
       res.json({
+
         ...resumo.rows[0],
-        por_etapa: etapasQ.rows,
-        por_area: areasQ.rows,
-        atencao: atencao.rows,
-        lembretes: lembretes.rows,
-        periodo_movimento: { ano, mes }
+
+        por_etapa:
+          etapasQ.rows,
+
+        por_area:
+          areasQ.rows,
+
+        atencao:
+          atencao.rows,
+
+        lembretes:
+          lembretes.rows,
+
+        periodo_movimento: {
+          ano,
+          mes
+        }
       });
 
     } catch (erro) {
@@ -2246,7 +2631,8 @@ app.get(
     try {
 
       const q =
-        await pool.query(`
+        await pool.query(
+          `
           SELECT
 
             p.*,
@@ -2255,35 +2641,40 @@ app.get(
               situacao_automatica,
 
             (
-              CURRENT_DATE
-              - p.data_inicio
+              CURRENT_DATE -
+              p.data_inicio
             )::int dias_em_aberto,
 
             GREATEST(
               0,
-              CURRENT_DATE
-              - p.atualizado_em::date
+              CURRENT_DATE -
+              p.atualizado_em::date
             )::int dias_sem_atualizacao,
 
             CASE
 
-              WHEN p.prazo_90_dias IS NULL
+              WHEN p.prazo_90_dias
+                IS NULL
                 THEN NULL
 
               ELSE (
-                p.prazo_90_dias
-                - CURRENT_DATE
+                p.prazo_90_dias -
+                CURRENT_DATE
               )::int
 
             END dias_para_90
 
           FROM projetos p
 
-          ORDER BY atualizado_em DESC
-        `);
+          ORDER BY
+            atualizado_em DESC
+          `
+        );
 
 
-      res.json(q.rows);
+      res.json(
+        q.rows
+      );
 
     } catch (erro) {
 
@@ -2314,18 +2705,19 @@ app.get(
               situacao_automatica,
 
             (
-              CURRENT_DATE
-              - p.data_inicio
+              CURRENT_DATE -
+              p.data_inicio
             )::int dias_em_aberto,
 
             CASE
 
-              WHEN p.prazo_90_dias IS NULL
+              WHEN p.prazo_90_dias
+                IS NULL
                 THEN NULL
 
               ELSE (
-                p.prazo_90_dias
-                - CURRENT_DATE
+                p.prazo_90_dias -
+                CURRENT_DATE
               )::int
 
             END dias_para_90
@@ -2334,7 +2726,9 @@ app.get(
 
           WHERE id=$1
           `,
-          [req.params.id]
+          [
+            req.params.id
+          ]
         );
 
 
@@ -2359,13 +2753,30 @@ app.get(
             ROUND(
               (
                 COALESCE(
-                  LEAD(COALESCE(h.data_movimentacao, h.data_registro::date))
+                  LEAD(
+                    COALESCE(
+                      h.data_movimentacao,
+                      h.data_registro::date
+                    )
+                  )
                   OVER(
-                    ORDER BY COALESCE(h.data_movimentacao, h.data_registro::date), h.data_registro
+                    ORDER BY
+                      COALESCE(
+                        h.data_movimentacao,
+                        h.data_registro::date
+                      ),
+                      h.data_registro
                   ),
                   CURRENT_DATE
                 )
-                - COALESCE(h.data_movimentacao, h.data_registro::date)
+
+                -
+
+                COALESCE(
+                  h.data_movimentacao,
+                  h.data_registro::date
+                )
+
               )::numeric,
               1
             ) dias_na_situacao
@@ -2375,10 +2786,17 @@ app.get(
           WHERE projeto_id=$1
 
           ORDER BY
-            COALESCE(data_movimentacao, data_registro::date) DESC,
+
+            COALESCE(
+              data_movimentacao,
+              data_registro::date
+            ) DESC,
+
             data_registro DESC
           `,
-          [req.params.id]
+          [
+            req.params.id
+          ]
         );
 
 
@@ -2391,12 +2809,26 @@ app.get(
 
               etapa,
               area_pendente,
-              COALESCE(data_movimentacao, data_registro::date) data_movimentacao,
 
               COALESCE(
-                LEAD(COALESCE(data_movimentacao, data_registro::date))
+                data_movimentacao,
+                data_registro::date
+              ) data_movimentacao,
+
+              COALESCE(
+                LEAD(
+                  COALESCE(
+                    data_movimentacao,
+                    data_registro::date
+                  )
+                )
                 OVER(
-                  ORDER BY COALESCE(data_movimentacao, data_registro::date), data_registro
+                  ORDER BY
+                    COALESCE(
+                      data_movimentacao,
+                      data_registro::date
+                    ),
+                    data_registro
                 ),
                 CURRENT_DATE
               ) fim
@@ -2412,7 +2844,8 @@ app.get(
 
             ROUND(
               SUM(
-                fim-data_movimentacao
+                fim -
+                data_movimentacao
               )::numeric,
               1
             )::float dias
@@ -2424,7 +2857,9 @@ app.get(
           ORDER BY
             MIN(data_movimentacao)
           `,
-          [req.params.id]
+          [
+            req.params.id
+          ]
         );
 
 
@@ -2436,12 +2871,26 @@ app.get(
             SELECT
 
               area_pendente,
-              COALESCE(data_movimentacao, data_registro::date) data_movimentacao,
 
               COALESCE(
-                LEAD(COALESCE(data_movimentacao, data_registro::date))
+                data_movimentacao,
+                data_registro::date
+              ) data_movimentacao,
+
+              COALESCE(
+                LEAD(
+                  COALESCE(
+                    data_movimentacao,
+                    data_registro::date
+                  )
+                )
                 OVER(
-                  ORDER BY COALESCE(data_movimentacao, data_registro::date), data_registro
+                  ORDER BY
+                    COALESCE(
+                      data_movimentacao,
+                      data_registro::date
+                    ),
+                    data_registro
                 ),
                 CURRENT_DATE
               ) fim
@@ -2457,7 +2906,8 @@ app.get(
 
             ROUND(
               SUM(
-                fim-data_movimentacao
+                fim -
+                data_movimentacao
               )::numeric,
               1
             )::float dias
@@ -2466,22 +2916,35 @@ app.get(
 
           WHERE
             area_pendente IS NOT NULL
-            AND area_pendente <> 'Sem pendência'
+
+            AND area_pendente <>
+              'Sem pendência'
 
           GROUP BY
             area_pendente
 
-          ORDER BY dias DESC
+          ORDER BY
+            dias DESC
           `,
-          [req.params.id]
+          [
+            req.params.id
+          ]
         );
 
 
       res.json({
-        projeto: p.rows[0],
-        historico: h.rows,
-        tempos_etapa: tempos.rows,
-        tempos_espera: esperas.rows
+
+        projeto:
+          p.rows[0],
+
+        historico:
+          h.rows,
+
+        tempos_etapa:
+          tempos.rows,
+
+        tempos_espera:
+          esperas.rows
       });
 
     } catch (erro) {
@@ -2498,25 +2961,36 @@ app.get(
 
 app.post(
   '/api/projetos',
+
   exigirPermissao(
     'criar'
   ),
+
   async (req, res, next) => {
 
     const c =
       await pool.connect();
 
+
     try {
 
-      await c.query('BEGIN');
+      await c.query(
+        'BEGIN'
+      );
+
 
       const b =
         req.body;
 
 
-      if (!b.cliente || !b.nome) {
+      if (
+        !b.cliente ||
+        !b.nome
+      ) {
 
-        await c.query('ROLLBACK');
+        await c.query(
+          'ROLLBACK'
+        );
 
         return res
           .status(400)
@@ -2543,6 +3017,7 @@ app.post(
       if (
         etapaFinal ===
           'Concluído / Pedido Fechado' ||
+
         etapaFinal ===
           'Concluído / Sem Conversão'
       ) {
@@ -2556,11 +3031,18 @@ app.post(
 
 
       const seq =
-        await c.query(`
+        await c.query(
+          `
           SELECT
-            COALESCE(MAX(id),0)+1 n
+
+            COALESCE(
+              MAX(id),
+              0
+            ) + 1 n
+
           FROM projetos
-        `);
+          `
+        );
 
 
       const sql = `
@@ -2583,6 +3065,7 @@ app.post(
           observacoes,
           origem_cliente,
           comercial_responsavel,
+          ramo,
           data_conclusao
 
         )
@@ -2594,7 +3077,12 @@ app.post(
           $3,
           $4,
           $5,
-          COALESCE($6::date,CURRENT_DATE),
+
+          COALESCE(
+            $6::date,
+            CURRENT_DATE
+          ),
+
           $7,
           $8,
           $9,
@@ -2604,22 +3092,30 @@ app.post(
           $13,
 
           CASE
-            WHEN $13::date IS NULL
+
+            WHEN $13::date
+              IS NULL
               THEN NULL
+
             ELSE (
-              $13::date
-              + INTERVAL '90 days'
+              $13::date +
+              INTERVAL '90 days'
             )::date
+
           END,
 
           $14,
           $15,
           $16,
+          $17,
 
           CASE
+
             WHEN $8='Concluído'
               THEN CURRENT_DATE
+
             ELSE NULL
+
           END
 
         )
@@ -2640,11 +3136,14 @@ app.post(
 
         b.nome,
 
-        b.responsavel || 'Erika',
+        b.responsavel ||
+          'Erika',
 
-        b.data_inicio || null,
+        b.data_inicio ||
+          null,
 
-        b.previsao_conclusao || null,
+        b.previsao_conclusao ||
+          null,
 
         statusFinal,
 
@@ -2652,17 +3151,26 @@ app.post(
 
         areaFinal,
 
-        b.proxima_acao || null,
+        b.proxima_acao ||
+          null,
 
-        b.prazo_proxima_acao || null,
+        b.prazo_proxima_acao ||
+          null,
 
-        b.data_aprovacao || null,
+        b.data_aprovacao ||
+          null,
 
-        b.observacoes || null,
+        b.observacoes ||
+          null,
 
-        b.origem_cliente || null,
+        b.origem_cliente ||
+          null,
 
-        b.comercial_responsavel || null
+        b.comercial_responsavel ||
+          null,
+
+        b.ramo ||
+          null
       ];
 
 
@@ -2690,6 +3198,7 @@ app.post(
         )
 
         VALUES (
+
           $1,
           $2,
           $3,
@@ -2698,7 +3207,11 @@ app.post(
           'Cadastro inicial',
           $5,
           $6,
-          COALESCE($7::date, CURRENT_DATE)
+
+          COALESCE(
+            $7::date,
+            CURRENT_DATE
+          )
         )
         `,
         [
@@ -2720,14 +3233,21 @@ app.post(
         'projeto',
         p.rows[0].id,
         {
-          codigo: p.rows[0].codigo,
-          cliente: p.rows[0].cliente,
-          nome: p.rows[0].nome
+          codigo:
+            p.rows[0].codigo,
+
+          cliente:
+            p.rows[0].cliente,
+
+          nome:
+            p.rows[0].nome
         }
       );
 
 
-      await c.query('COMMIT');
+      await c.query(
+        'COMMIT'
+      );
 
 
       res
@@ -2758,17 +3278,22 @@ app.post(
 
 app.put(
   '/api/projetos/:id',
+
   exigirPermissao(
     'editar'
   ),
+
   async (req, res, next) => {
 
     const c =
       await pool.connect();
 
+
     try {
 
-      await c.query('BEGIN');
+      await c.query(
+        'BEGIN'
+      );
 
 
       const old =
@@ -2778,7 +3303,9 @@ app.put(
           FROM projetos
           WHERE id=$1
           `,
-          [req.params.id]
+          [
+            req.params.id
+          ]
         );
 
 
@@ -2795,9 +3322,7 @@ app.put(
               'Projeto não encontrado'
           });
       }
-
-
-      const o =
+            const o =
         old.rows[0];
 
       const b =
@@ -2817,6 +3342,13 @@ app.put(
             b,
             'segmento',
             o.segmento
+          ),
+
+        ramo:
+          nullable(
+            b,
+            'ramo',
+            o.ramo
           ),
 
         nome:
@@ -2906,6 +3438,7 @@ app.put(
       if (
         v.etapa ===
           'Concluído / Pedido Fechado' ||
+
         v.etapa ===
           'Concluído / Sem Conversão'
       ) {
@@ -2966,20 +3499,24 @@ app.put(
 
             prazo_90_dias=
               CASE
+
                 WHEN $12::date IS NULL
                   THEN NULL
+
                 ELSE (
                   $12::date
                   + INTERVAL '90 days'
                 )::date
+
               END,
 
             data_conclusao=$13,
             origem_cliente=$14,
             comercial_responsavel=$15,
+            ramo=$16,
             atualizado_em=NOW()
 
-          WHERE id=$16
+          WHERE id=$17
 
           RETURNING *
           `,
@@ -2999,18 +3536,21 @@ app.put(
             conclusao,
             v.origem,
             v.comercial,
+            v.ramo,
             req.params.id
           ]
         );
 
 
-      const mudou =
+            const mudou =
 
         o.status !== v.status ||
 
         o.etapa_atual !== v.etapa ||
 
         o.area_pendente !== v.area ||
+
+        o.ramo !== v.ramo ||
 
         o.proxima_acao !== v.acao ||
 
@@ -3056,13 +3596,24 @@ app.put(
         }
 
 
-        if (
+               if (
           o.area_pendente !==
           v.area
         ) {
 
           detalhes.push(
             `Aguardando: ${o.area_pendente} → ${v.area}`
+          );
+        }
+
+
+        if (
+          o.ramo !==
+          v.ramo
+        ) {
+
+          detalhes.push(
+            `Ramo: ${o.ramo || '—'} → ${v.ramo || '—'}`
           );
         }
 
@@ -3091,8 +3642,7 @@ app.put(
             'Prazo da próxima ação atualizado'
           );
         }
-
-
+        
         await c.query(
           `
           INSERT INTO historico_etapas (
@@ -3110,6 +3660,7 @@ app.put(
           )
 
           VALUES (
+
             $1,
             $2,
             $3,
@@ -3118,7 +3669,11 @@ app.put(
             $6,
             $7,
             $8,
-            COALESCE($9::date, CURRENT_DATE)
+
+            COALESCE(
+              $9::date,
+              CURRENT_DATE
+            )
           )
           `,
           [
@@ -3131,9 +3686,12 @@ app.put(
             b.movimentacao_observacao ||
             detalhes.join(' | ') ||
             'Atualização do projeto',
+
             req.usuario.id,
             req.usuario.nome,
-            b.data_movimentacao || null
+
+            b.data_movimentacao ||
+              null
           ]
         );
       }
@@ -3144,17 +3702,24 @@ app.put(
         req,
         'ATUALIZAR_PROJETO',
         'projeto',
-        Number(req.params.id),
+        Number(
+          req.params.id
+        ),
         {
-          codigo: o.codigo,
+          codigo:
+            o.codigo,
+
           alteracoes:
             detalhes.length
               ? detalhes
-              : ['Dados gerais atualizados']
+              : [
+                  'Dados gerais atualizados'
+                ]
         }
       );
 
-          // ========================================================
+
+      // ========================================================
       // CONFIRMA A ATUALIZAÇÃO DO PROJETO
       // ========================================================
 
@@ -3167,11 +3732,13 @@ app.put(
       // NOTIFICAÇÃO OPCIONAL
       // ========================================================
 
-      let notificacao = null;
+      let notificacao =
+        null;
 
 
       if (
-        b.notificar_responsaveis === true
+        b.notificar_responsaveis ===
+        true
       ) {
 
         try {
@@ -3239,7 +3806,9 @@ app.put(
 
 
             const textoDestinatarios =
-              destinatarios.emails.join(', ');
+              destinatarios.emails.join(
+                ', '
+              );
 
 
             await pool.query(
@@ -3268,6 +3837,7 @@ app.put(
                 $6,
                 $7,
                 $8,
+
                 COALESCE(
                   $9::date,
                   CURRENT_DATE
@@ -3347,7 +3917,7 @@ app.put(
         ...q.rows[0],
         notificacao
       });
-      
+
 
     } catch (erro) {
 
@@ -3371,9 +3941,11 @@ app.put(
 
 app.get(
   '/api/relatorios/projetos.xlsx',
+
   exigirPermissao(
     'exportar'
   ),
+
   async (req, res, next) => {
 
     try {
@@ -3410,7 +3982,8 @@ app.get(
                   data_conclusao,
                   CURRENT_DATE
                 )
-                - data_inicio
+                -
+                data_inicio
               )::int tempo_total_dias
 
             FROM projetos p
@@ -3421,7 +3994,9 @@ app.get(
             ORDER BY
               criado_em DESC
             `,
-            [ids]
+            [
+              ids
+            ]
           )
         ).rows;
 
@@ -3466,7 +4041,9 @@ app.get(
               p.codigo,
               h.data_registro DESC
             `,
-            [ids]
+            [
+              ids
+            ]
           )
         ).rows;
 
@@ -3489,10 +4066,14 @@ app.get(
 
                 COALESCE(
 
-                  LEAD(h.data_registro)
+                  LEAD(
+                    h.data_registro
+                  )
                   OVER(
-                    PARTITION BY h.projeto_id
-                    ORDER BY h.data_registro
+                    PARTITION BY
+                      h.projeto_id
+                    ORDER BY
+                      h.data_registro
                   ),
 
                   NOW()
@@ -3519,7 +4100,8 @@ app.get(
                 SUM(
                   EXTRACT(
                     EPOCH FROM (
-                      fim-data_registro
+                      fim -
+                      data_registro
                     )
                   ) / 86400.0
                 ),
@@ -3538,13 +4120,16 @@ app.get(
               codigo,
               etapa
             `,
-            [ids]
+            [
+              ids
+            ]
           )
         ).rows;
 
 
       const total =
         projetos.length;
+
 
       const andamento =
         projetos.filter(
@@ -3553,12 +4138,14 @@ app.get(
             'Em andamento'
         ).length;
 
+
       const pausados =
         projetos.filter(
           p =>
             p.status ===
             'Pausado'
         ).length;
+
 
       const concluidos =
         projetos.filter(
@@ -3567,12 +4154,14 @@ app.get(
             'Concluído'
         ).length;
 
+
       const pedidosFechados =
         projetos.filter(
           p =>
             p.etapa_atual ===
             'Concluído / Pedido Fechado'
         ).length;
+
 
       const semConversao =
         projetos.filter(
@@ -3581,9 +4170,11 @@ app.get(
             'Concluído / Sem Conversão'
         ).length;
 
+
       const encerrados =
         pedidosFechados +
         semConversao;
+
 
       const conversao =
         encerrados
@@ -3598,8 +4189,10 @@ app.get(
       const wb =
         new ExcelJS.Workbook();
 
+
       wb.creator =
         'LENVIE Projetos';
+
 
       wb.created =
         new Date();
@@ -3617,37 +4210,45 @@ app.get(
         'RELATÓRIO DE PROJETOS - LENVIE'
       ]);
 
+
       resumo.mergeCells(
         'A1:D1'
       );
 
-      resumo.getCell('A1').font = {
+
+      resumo.getCell(
+        'A1'
+      ).font = {
         bold: true,
         size: 17,
         color: {
-          argb: 'FF354133'
+          argb:
+            'FF354133'
         }
       };
 
 
       resumo.addRow([
         'Gerado em',
+
         new Date()
           .toLocaleString(
             'pt-BR'
           )
       ]);
 
+
       resumo.addRow([
         'Projetos selecionados',
         total
       ]);
 
+
       resumo.addRow([]);
 
 
       resumo.addRow([
-        'Indicador',
+                'Indicador',
         'Valor'
       ]);
 
@@ -3750,10 +4351,12 @@ app.get(
         ws.getRow(1)
       );
 
+
       ws.autoFilter = {
         from: 'A1',
         to: 'T1'
       };
+
 
       ws.views = [
         {
@@ -3761,6 +4364,7 @@ app.get(
           ySplit: 1
         }
       ];
+
 
       autoWidth(ws);
 
@@ -3803,10 +4407,12 @@ app.get(
         wh.getRow(1)
       );
 
+
       wh.autoFilter = {
         from: 'A1',
         to: 'I1'
       };
+
 
       wh.views = [
         {
@@ -3814,6 +4420,7 @@ app.get(
           ySplit: 1
         }
       ];
+
 
       autoWidth(wh);
 
@@ -3852,10 +4459,12 @@ app.get(
         wt.getRow(1)
       );
 
+
       wt.autoFilter = {
         from: 'A1',
         to: 'E1'
       };
+
 
       autoWidth(wt);
 
@@ -3902,9 +4511,11 @@ app.get(
 
 app.get(
   '/relatorios/projetos.pdf',
+
   exigirPermissao(
     'exportar'
   ),
+
   async (req, res, next) => {
 
     try {
@@ -3941,7 +4552,8 @@ app.get(
                   data_conclusao,
                   CURRENT_DATE
                 )
-                - data_inicio
+                -
+                data_inicio
               )::int tempo_total_dias
 
             FROM projetos p
@@ -3952,7 +4564,9 @@ app.get(
             ORDER BY
               codigo
             `,
-            [ids]
+            [
+              ids
+            ]
           )
         ).rows;
 
@@ -3978,7 +4592,9 @@ app.get(
               p.codigo,
               h.data_registro DESC
             `,
-            [ids]
+            [
+              ids
+            ]
           )
         ).rows;
 
@@ -3995,492 +4611,769 @@ app.get(
 
       const projetosHtml =
         projetos
-          .map(projeto => {
+          .map(
+            projeto => {
 
-            const hist =
-              historico.filter(
-                h =>
-                  h.projeto_id ===
-                  projeto.id
-              );
-
-
-            const historicoHtml =
-              hist.length
-                ? hist
-                    .map(item => `
-                      <div class="hist">
-                        <strong>
-                          ${escapeHtml(
-                            dataHoraBR(
-                              item.data_registro
-                            )
-                          )}
-                        </strong>
-
-                        <div>
-                          ${escapeHtml(
-                            item.situacao ||
-                            ''
-                          )}
-                          ·
-                          ${escapeHtml(
-                            item.etapa ||
-                            ''
-                          )}
-                        </div>
-
-                        <div class="muted">
-                          Aguardando:
-                          ${escapeHtml(
-                            item.area_pendente ||
-                            '—'
-                          )}
-                        </div>
-
-                        ${
-                          item.pendencia_proximo_passo
-                            ? `
-                              <div>
-                                ${escapeHtml(
-                                  item.pendencia_proximo_passo
-                                )}
-                              </div>
-                            `
-                            : ''
-                        }
-
-                        ${
-                          item.observacoes
-                            ? `
-                              <small>
-                                ${escapeHtml(
-                                  item.observacoes
-                                )}
-                              </small>
-                            `
-                            : ''
-                        }
-                      </div>
-                    `)
-                    .join('')
-                : '<p>Sem histórico.</p>';
+              const hist =
+                historico.filter(
+                  h =>
+                    h.projeto_id ===
+                    projeto.id
+                );
 
 
-            return `
-              <section class="projeto">
+              const historicoHtml =
+                hist.length
 
-                <div class="titulo-projeto">
+                  ? hist
+                      .map(
+                        item => `
+                          <div class="hist">
 
-                  <div>
+                            <strong>
+                              ${escapeHtml(
+                                dataHoraBR(
+                                  item.data_registro
+                                )
+                              )}
+                            </strong>
 
-                    <h1>
-                      ${escapeHtml(
-                        projeto.codigo
-                      )}
-                      ·
-                      ${escapeHtml(
-                        projeto.nome
-                      )}
-                    </h1>
+                            <div>
 
-                    <span class="situacao">
-                      ${escapeHtml(
-                        projeto.situacao_automatica
-                      )}
-                    </span>
+                              ${escapeHtml(
+                                item.situacao ||
+                                ''
+                              )}
 
-                  </div>
+                              ·
 
-                  <div class="cliente">
-                    ${escapeHtml(
-                      projeto.cliente
-                    )}
-                  </div>
+                              ${escapeHtml(
+                                item.etapa ||
+                                ''
+                              )}
 
-                </div>
+                            </div>
+
+                            <div class="muted">
+
+                              Aguardando:
+
+                              ${escapeHtml(
+                                item.area_pendente ||
+                                '—'
+                              )}
+
+                            </div>
+
+                            ${
+                              item.pendencia_proximo_passo
+
+                                ? `
+                                  <div>
+                                    ${escapeHtml(
+                                      item.pendencia_proximo_passo
+                                    )}
+                                  </div>
+                                `
+
+                                : ''
+                            }
+
+                            ${
+                              item.observacoes
+
+                                ? `
+                                  <small>
+                                    ${escapeHtml(
+                                      item.observacoes
+                                    )}
+                                  </small>
+                                `
+
+                                : ''
+                            }
+
+                          </div>
+                        `
+                      )
+                      .join('')
+
+                  : '<p>Sem histórico.</p>';
 
 
-                <div class="grid">
+              return `
+                <section class="projeto">
 
-                  <div>
-                    <label>Cliente</label>
-                    <p>
+                  <div class="titulo-projeto">
+
+                    <div>
+
+                      <h1>
+
+                        ${escapeHtml(
+                          projeto.codigo
+                        )}
+
+                        ·
+
+                        ${escapeHtml(
+                          projeto.nome
+                        )}
+
+                      </h1>
+
+                      <span class="situacao">
+
+                        ${escapeHtml(
+                          projeto.situacao_automatica
+                        )}
+
+                      </span>
+
+                    </div>
+
+
+                    <div class="cliente">
+
                       ${escapeHtml(
                         projeto.cliente
                       )}
-                    </p>
+
+                    </div>
+
                   </div>
 
-                  <div>
-                    <label>Segmento</label>
+
+                  <div class="grid">
+
+                    <div>
+
+                      <label>
+                        Cliente
+                      </label>
+
+                      <p>
+                        ${escapeHtml(
+                          projeto.cliente
+                        )}
+                      </p>
+
+                    </div>
+
+
+                    <div>
+
+                      <label>
+                        Segmento
+                      </label>
+
+                      <p>
+                        ${escapeHtml(
+                          projeto.segmento ||
+                          '—'
+                        )}
+                      </p>
+
+                    </div>
+
+
+                    <div>
+
+                      <label>
+                        Responsável
+                      </label>
+
+                      <p>
+                        ${escapeHtml(
+                          projeto.responsavel ||
+                          '—'
+                        )}
+                      </p>
+
+                    </div>
+
+
+                    <div>
+
+                      <label>
+                        Comercial
+                      </label>
+
+                      <p>
+                        ${escapeHtml(
+                          projeto.comercial_responsavel ||
+                          '—'
+                        )}
+                      </p>
+
+                    </div>
+
+
+                    <div>
+
+                      <label>
+                        Status
+                      </label>
+
+                      <p>
+                        ${escapeHtml(
+                          projeto.status
+                        )}
+                      </p>
+
+                    </div>
+
+
+                    <div>
+
+                      <label>
+                        Etapa
+                      </label>
+
+                      <p>
+                        ${escapeHtml(
+                          projeto.etapa_atual
+                        )}
+                      </p>
+
+                    </div>
+
+
+                    <div>
+
+                      <label>
+                        Aguardando
+                      </label>
+
+                      <p>
+                        ${escapeHtml(
+                          projeto.area_pendente
+                        )}
+                      </p>
+
+                    </div>
+
+
+                    <div>
+
+                      <label>
+                        Tempo total
+                      </label>
+
+                      <p>
+
+                        ${escapeHtml(
+                          projeto.tempo_total_dias
+                        )}
+
+                        dias
+
+                      </p>
+
+                    </div>
+
+
+                    <div>
+
+                      <label>
+                        Data de início
+                      </label>
+
+                      <p>
+                        ${dataBR(
+                          projeto.data_inicio
+                        )}
+                      </p>
+
+                    </div>
+
+
+                    <div>
+
+                      <label>
+                        Previsão
+                      </label>
+
+                      <p>
+                        ${dataBR(
+                          projeto.previsao_conclusao
+                        )}
+                      </p>
+
+                    </div>
+
+
+                    <div>
+
+                      <label>
+                        Data de aprovação
+                      </label>
+
+                      <p>
+                        ${dataBR(
+                          projeto.data_aprovacao
+                        )}
+                      </p>
+
+                    </div>
+
+
+                    <div>
+
+                      <label>
+                        Prazo 90 dias
+                      </label>
+
+                      <p>
+                        ${dataBR(
+                          projeto.prazo_90_dias
+                        )}
+                      </p>
+
+                    </div>
+
+                  </div>
+
+
+                  <div class="bloco">
+
+                    <label>
+                      Próxima ação
+                    </label>
+
                     <p>
+
                       ${escapeHtml(
-                        projeto.segmento ||
+                        projeto.proxima_acao ||
                         '—'
                       )}
+
                     </p>
+
                   </div>
 
-                  <div>
-                    <label>Responsável</label>
+
+                  <div class="bloco">
+
+                    <label>
+                      Observações
+                    </label>
+
                     <p>
+
                       ${escapeHtml(
-                        projeto.responsavel ||
+                        projeto.observacoes ||
                         '—'
                       )}
+
                     </p>
+
                   </div>
 
-                  <div>
-                    <label>Comercial</label>
-                    <p>
-                      ${escapeHtml(
-                        projeto.comercial_responsavel ||
-                        '—'
-                      )}
-                    </p>
-                  </div>
 
-                  <div>
-                    <label>Status</label>
-                    <p>
-                      ${escapeHtml(
-                        projeto.status
-                      )}
-                    </p>
-                  </div>
+                  <h2>
+                    Histórico
+                  </h2>
 
-                  <div>
-                    <label>Etapa</label>
-                    <p>
-                      ${escapeHtml(
-                        projeto.etapa_atual
-                      )}
-                    </p>
-                  </div>
+                  ${historicoHtml}
 
-                  <div>
-                    <label>Aguardando</label>
-                    <p>
-                      ${escapeHtml(
-                        projeto.area_pendente
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Tempo total</label>
-                    <p>
-                      ${escapeHtml(
-                        projeto.tempo_total_dias
-                      )}
-                      dias
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Data de início</label>
-                    <p>
-                      ${dataBR(
-                        projeto.data_inicio
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Previsão</label>
-                    <p>
-                      ${dataBR(
-                        projeto.previsao_conclusao
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Data de aprovação</label>
-                    <p>
-                      ${dataBR(
-                        projeto.data_aprovacao
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Prazo 90 dias</label>
-                    <p>
-                      ${dataBR(
-                        projeto.prazo_90_dias
-                      )}
-                    </p>
-                  </div>
-
-                </div>
-
-
-                <div class="bloco">
-
-                  <label>
-                    Próxima ação
-                  </label>
-
-                  <p>
-                    ${escapeHtml(
-                      projeto.proxima_acao ||
-                      '—'
-                    )}
-                  </p>
-
-                </div>
-
-
-                <div class="bloco">
-
-                  <label>
-                    Observações
-                  </label>
-
-                  <p>
-                    ${escapeHtml(
-                      projeto.observacoes ||
-                      '—'
-                    )}
-                  </p>
-
-                </div>
-
-
-                <h2>
-                  Histórico
-                </h2>
-
-                ${historicoHtml}
-
-              </section>
-            `;
-          })
+                </section>
+              `;
+            }
+          )
           .join('');
 
 
-      res.type('html').send(`
-        <!doctype html>
+      res
+        .type('html')
+        .send(
+          `
+          <!doctype html>
 
-        <html lang="pt-BR">
+          <html lang="pt-BR">
 
-        <head>
+          <head>
 
-          <meta charset="utf-8">
+            <meta charset="utf-8">
 
-          <meta
-            name="viewport"
-            content="width=device-width,initial-scale=1"
-          >
+            <meta
+              name="viewport"
+              content="width=device-width,initial-scale=1"
+            >
 
-          <title>
-            Relatório LENVIE
-          </title>
+            <title>
+              Relatório LENVIE
+            </title>
 
-          <style>
 
-            * {
-              box-sizing: border-box;
-            }
+            <style>
 
-            body {
-              margin: 0;
-              font-family:
-                Arial,
-                sans-serif;
-              color: #1d281d;
-              background: #f3f5f0;
-            }
+              * {
+                box-sizing:
+                  border-box;
+              }
 
-            .topo {
-              height: 110px;
-              background:
-                #a9b79e
-                url('/img/lenvie-topo.png')
-                center / cover
-                no-repeat;
-            }
-
-            main {
-              max-width: 1000px;
-              margin: 25px auto;
-              padding: 0 20px;
-            }
-
-            .acoes {
-              display: flex;
-              justify-content: flex-end;
-              margin-bottom: 15px;
-            }
-
-            button {
-              border: 0;
-              background: #66745c;
-              color: white;
-              padding: 11px 18px;
-              border-radius: 8px;
-              cursor: pointer;
-            }
-
-            .projeto {
-              background: white;
-              padding: 28px;
-              border-radius: 14px;
-              margin-bottom: 25px;
-              box-shadow:
-                0 5px 20px
-                rgba(0,0,0,.08);
-              page-break-after: always;
-            }
-
-            .projeto:last-child {
-              page-break-after: auto;
-            }
-
-            .titulo-projeto {
-              display: flex;
-              justify-content: space-between;
-              gap: 20px;
-              border-bottom:
-                2px solid #dce2d8;
-              padding-bottom: 15px;
-              margin-bottom: 20px;
-            }
-
-            h1 {
-              margin: 0 0 8px;
-              font-size: 24px;
-            }
-
-            h2 {
-              margin-top: 25px;
-              font-size: 18px;
-            }
-
-            .cliente {
-              font-weight: bold;
-              color: #66745c;
-            }
-
-            .situacao {
-              display: inline-block;
-              background: #f6e7a9;
-              padding: 5px 9px;
-              border-radius: 999px;
-              font-size: 12px;
-              font-weight: bold;
-            }
-
-            .grid {
-              display: grid;
-              grid-template-columns:
-                repeat(2,1fr);
-              gap: 12px;
-            }
-
-            .grid div,
-            .bloco {
-              border: 1px solid #dfe5dc;
-              border-radius: 8px;
-              padding: 10px;
-            }
-
-            label {
-              display: block;
-              font-size: 11px;
-              font-weight: bold;
-              color: #66745c;
-              text-transform: uppercase;
-            }
-
-            p {
-              margin: 5px 0 0;
-              white-space: pre-wrap;
-            }
-
-            .bloco {
-              margin-top: 12px;
-            }
-
-            .hist {
-              border-left:
-                3px solid #829278;
-              padding: 8px 12px;
-              margin: 12px 0;
-            }
-
-            .muted,
-            small {
-              color: #687467;
-            }
-
-            @media print {
 
               body {
-                background: white;
-              }
 
-              .acoes {
-                display: none;
-              }
-
-              main {
-                max-width: none;
                 margin: 0;
-                padding: 0;
+
+                font-family:
+                  Arial,
+                  sans-serif;
+
+                color:
+                  #1d281d;
+
+                background:
+                  #f3f5f0;
               }
+
 
               .topo {
-                height: 80px;
+
+                height:
+                  110px;
+
+                background:
+                  #a9b79e
+                  url('/img/lenvie-topo.png')
+                  center / cover
+                  no-repeat;
               }
+
+
+              main {
+
+                max-width:
+                  1000px;
+
+                margin:
+                  25px auto;
+
+                padding:
+                  0 20px;
+              }
+
+
+              .acoes {
+
+                display:
+                  flex;
+
+                justify-content:
+                  flex-end;
+
+                margin-bottom:
+                  15px;
+              }
+
+
+              button {
+
+                border: 0;
+
+                background:
+                  #66745c;
+
+                color:
+                  white;
+
+                padding:
+                  11px 18px;
+
+                border-radius:
+                  8px;
+
+                cursor:
+                  pointer;
+              }
+
 
               .projeto {
-                box-shadow: none;
-                border-radius: 0;
+
+                background:
+                  white;
+
+                padding:
+                  28px;
+
+                border-radius:
+                  14px;
+
+                margin-bottom:
+                  25px;
+
+                box-shadow:
+                  0 5px 20px
+                  rgba(0,0,0,.08);
+
+                page-break-after:
+                  always;
               }
-            }
 
-          </style>
 
-        </head>
+              .projeto:last-child {
 
-        <body>
-
-          <div class="topo"></div>
-
-          <main>
-
-            <div class="acoes">
-              <button
-                onclick="window.print()"
-              >
-                Salvar / Imprimir PDF
-              </button>
-            </div>
-
-            ${projetosHtml}
-
-          </main>
-
-          <script>
-            window.addEventListener(
-              'load',
-              () => {
-                setTimeout(
-                  () => window.print(),
-                  500
-                );
+                page-break-after:
+                  auto;
               }
-            );
-          </script>
 
-        </body>
 
-        </html>
-      `);
+              .titulo-projeto {
+
+                display:
+                  flex;
+
+                justify-content:
+                  space-between;
+
+                gap:
+                  20px;
+
+                border-bottom:
+                  2px solid #dce2d8;
+
+                padding-bottom:
+                  15px;
+
+                margin-bottom:
+                  20px;
+              }
+
+
+              h1 {
+
+                margin:
+                  0 0 8px;
+
+                font-size:
+                  24px;
+              }
+
+
+              h2 {
+
+                margin-top:
+                  25px;
+
+                font-size:
+                  18px;
+              }
+
+
+              .cliente {
+
+                font-weight:
+                  bold;
+
+                color:
+                  #66745c;
+              }
+
+
+              .situacao {
+
+                display:
+                  inline-block;
+
+                background:
+                  #f6e7a9;
+
+                padding:
+                  5px 9px;
+
+                border-radius:
+                  999px;
+
+                font-size:
+                  12px;
+
+                font-weight:
+                  bold;
+              }
+
+
+              .grid {
+
+                display:
+                  grid;
+
+                grid-template-columns:
+                  repeat(2,1fr);
+
+                gap:
+                  12px;
+              }
+
+
+              .grid div,
+              .bloco {
+
+                border:
+                  1px solid #dfe5dc;
+
+                border-radius:
+                  8px;
+
+                padding:
+                  10px;
+              }
+
+
+              label {
+
+                display:
+                  block;
+
+                font-size:
+                  11px;
+
+                font-weight:
+                  bold;
+
+                color:
+                  #66745c;
+
+                text-transform:
+                  uppercase;
+              }
+
+
+              p {
+
+                margin:
+                  5px 0 0;
+
+                white-space:
+                  pre-wrap;
+              }
+
+
+              .bloco {
+
+                margin-top:
+                  12px;
+              }
+
+
+              .hist {
+
+                border-left:
+                  3px solid #829278;
+
+                padding:
+                  8px 12px;
+
+                margin:
+                  12px 0;
+              }
+
+
+              .muted,
+              small {
+
+                color:
+                  #687467;
+              }
+
+
+              @media print {
+
+                body {
+
+                  background:
+                    white;
+                }
+
+
+                .acoes {
+
+                  display:
+                    none;
+                }
+
+
+                main {
+
+                  max-width:
+                    none;
+
+                  margin:
+                    0;
+
+                  padding:
+                    0;
+                }
+
+
+                .topo {
+
+                  height:
+                    80px;
+                }
+
+
+                .projeto {
+
+                  box-shadow:
+                    none;
+
+                  border-radius:
+                    0;
+                }
+              }
+
+            </style>
+
+          </head>
+
+
+          <body>
+
+            <div class="topo"></div>
+
+
+            <main>
+
+              <div class="acoes">
+
+                <button
+                  onclick="window.print()"
+                >
+                  Salvar / Imprimir PDF
+                </button>
+
+              </div>
+
+
+              ${projetosHtml}
+
+            </main>
+
+
+            <script>
+
+              window.addEventListener(
+                'load',
+                () => {
+
+                  setTimeout(
+                    () =>
+                      window.print(),
+                    500
+                  );
+                }
+              );
+
+            </script>
+
+          </body>
+
+          </html>
+          `
+        );
+
 
     } catch (erro) {
 
@@ -4495,16 +5388,23 @@ app.get(
 // ============================================================
 
 app.use(
-  (erro, req, res, next) => {
+  (
+    erro,
+    req,
+    res,
+    next
+  ) => {
 
     console.error(
       'ERRO:',
       erro
     );
 
+
     res
       .status(500)
       .json({
+
         erro:
           'Erro interno',
 
@@ -4524,8 +5424,11 @@ const PORT =
 
 
 async function iniciarServidor() {
+
   try {
+
     await garantirEstruturaAuth();
+
 
     app.listen(
       PORT,
@@ -4535,7 +5438,9 @@ async function iniciarServidor() {
         )
     );
 
+
   } catch (erro) {
+
     console.error(
       'Falha ao iniciar o servidor:',
       erro
@@ -4544,5 +5449,6 @@ async function iniciarServidor() {
     process.exit(1);
   }
 }
+
 
 iniciarServidor();

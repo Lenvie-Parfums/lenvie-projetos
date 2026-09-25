@@ -135,23 +135,24 @@ document.addEventListener(
 
     const notificarResponsaveis =
       document.getElementById(
-       'notificarResponsaveis'
+        'notificarResponsaveis'
       );
 
     const camposNotificacao =
       document.getElementById(
-       'camposNotificacao'
+        'camposNotificacao'
       );
 
     const notificarComercial =
       document.getElementById(
-       'notificarComercial'
-     );
+        'notificarComercial'
+      );
 
     const notificarProjeto =
       document.getElementById(
-       'notificarProjeto'
-     );
+        'notificarProjeto'
+      );
+
 
     function dataInput(valor) {
 
@@ -432,14 +433,14 @@ document.addEventListener(
         'flex';
 
       blocoMovimentacao.style.display =
-         'block';
+        'block';
 
-    if (blocoNotificacao) {
-      blocoNotificacao.style.display =
-         'block';
-  }
+      if (blocoNotificacao) {
+        blocoNotificacao.style.display =
+          'block';
+      }
 
-    if (dataMovimentacao) {
+      if (dataMovimentacao) {
         dataMovimentacao.value =
           hojeInput();
       }
@@ -550,6 +551,11 @@ document.addEventListener(
         preencherCampo(
           'segmento',
           projeto.segmento
+        );
+
+        preencherCampo(
+          'ramo',
+          projeto.ramo
         );
 
         preencherCampo(
@@ -777,9 +783,7 @@ document.addEventListener(
         );
       }
     }
-
-
-    if (somenteLeitura) {
+        if (somenteLeitura) {
 
       const aviso =
         document.createElement(
@@ -812,19 +816,22 @@ document.addEventListener(
         'none';
     }
 
-if (notificarResponsaveis) {
 
-  notificarResponsaveis.addEventListener(
-    'change',
-    () => {
+    if (notificarResponsaveis) {
 
-      camposNotificacao.style.display =
-        notificarResponsaveis.checked
-          ? 'block'
-          : 'none';
+      notificarResponsaveis.addEventListener(
+        'change',
+        () => {
+
+          camposNotificacao.style.display =
+            notificarResponsaveis.checked
+              ? 'block'
+              : 'none';
+        }
+      );
     }
-  );
-}
+
+
     etapaSelect.addEventListener(
       'change',
       () => {
@@ -972,20 +979,22 @@ if (notificarResponsaveis) {
           dados.area_pendente =
             areaSelect.value ||
             'Sem pendência';
+
           dados.notificar_responsaveis =
-             Boolean(
-             notificarResponsaveis?.checked
-           );
+            Boolean(
+              notificarResponsaveis?.checked
+            );
 
           dados.notificar_comercial =
-             Boolean(
-             notificarComercial?.checked
-           );
+            Boolean(
+              notificarComercial?.checked
+            );
 
           dados.notificar_projeto =
             Boolean(
-            notificarProjeto?.checked
-           );
+              notificarProjeto?.checked
+            );
+
 
           const url =
             modoEdicao
@@ -1039,27 +1048,32 @@ if (notificarResponsaveis) {
             );
           }
 
-        if (
-          dados.notificar_responsaveis &&
-          resultado.notificacao
+
+          if (
+            dados.notificar_responsaveis &&
+            resultado.notificacao
           ) {
 
-        if (resultado.notificacao.enviada) {
+            if (
+              resultado.notificacao.enviada
+            ) {
 
-        alert(
-        'Projeto salvo e notificação enviada com sucesso.'
-        );
+              alert(
+                'Projeto salvo e notificação enviada com sucesso.'
+              );
 
-      } else {
+            } else {
 
-      alert(
-      `Projeto salvo, mas a notificação não foi enviada.\n\n${
-        resultado.notificacao.erro ||
-        'Verifique os destinatários e a configuração de e-mail.'
-      }`
-       );
-      }
-    }
+              alert(
+                `Projeto salvo, mas a notificação não foi enviada.\n\n${
+                  resultado.notificacao.erro ||
+                  'Verifique os destinatários e a configuração de e-mail.'
+                }`
+              );
+            }
+          }
+
+
           if (
             !modoEdicao &&
             resultado.id
