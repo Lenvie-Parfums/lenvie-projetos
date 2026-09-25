@@ -6,7 +6,7 @@
 
   <meta
     name="viewport"
-    content="width=device-width,initial-scale=1"
+    content="width=device-width, initial-scale=1"
   >
 
   <title>Login | LENVIE Projetos</title>
@@ -19,80 +19,254 @@
 
 <body>
 
-  <main class="login-card">
+  <main class="login-page">
 
-    <div class="login-brand">
+    <!-- ======================================================
+         LADO ESQUERDO — IDENTIDADE LENVIE
+         ====================================================== -->
 
-      <div class="login-company">
-        LENVIE
+    <section class="login-visual">
+
+      <div class="visual-overlay"></div>
+
+      <div class="visual-brand">
+        <div class="visual-logo">
+          <span>LENVIE</span>
+          <small>PARFUMS</small>
+        </div>
+
+        <div class="visual-message">
+          <h2>
+            AROMA<br>
+            QUE INSPIRA<br>
+            NOVOS<br>
+            PROJETOS.
+          </h2>
+        </div>
+
+        <div class="visual-footer">
+          <span></span>
+
+          <p>
+            SISTEMA DE<br>
+            GESTÃO DE PROJETOS
+          </p>
+        </div>
       </div>
 
-      <h1>
-        Gestão de Projetos
-      </h1>
-
-      <p>
-        Acesse com seu usuário autorizado.
-      </p>
-
-    </div>
+    </section>
 
 
-    <form
-      id="loginForm"
-      class="login-form"
-    >
+    <!-- ======================================================
+         LADO DIREITO — LOGIN
+         ====================================================== -->
 
-      <div>
+    <section class="login-panel">
 
-        <label for="email">
-          E-mail
-        </label>
+      <!-- decoração -->
+      <div class="leaf leaf-top">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
 
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autocomplete="username"
-          required
-          autofocus
+      <div class="leaf leaf-bottom">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+
+
+      <div class="login-content">
+
+        <header class="login-brand">
+
+          <div class="login-company">
+            LENVIE
+          </div>
+
+          <div class="brand-line"></div>
+
+          <h1>
+            Gestão de Projetos
+          </h1>
+
+          <p>
+            Acesse com seu usuário autorizado.
+          </p>
+
+        </header>
+
+
+        <form
+          id="loginForm"
+          class="login-form"
         >
 
+          <!-- EMAIL -->
+
+          <div class="form-group">
+
+            <label for="email">
+              E-mail
+            </label>
+
+            <div class="input-wrapper">
+
+              <span class="input-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M4 6h16v12H4z"
+                  ></path>
+
+                  <path
+                    d="m4 7 8 6 8-6"
+                  ></path>
+                </svg>
+              </span>
+
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="username"
+                placeholder="seu@email.com"
+                required
+                autofocus
+              >
+
+            </div>
+
+          </div>
+
+
+          <!-- SENHA -->
+
+          <div class="form-group">
+
+            <label for="senha">
+              Senha
+            </label>
+
+            <div class="input-wrapper">
+
+              <span class="input-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <rect
+                    x="5"
+                    y="10"
+                    width="14"
+                    height="10"
+                    rx="2"
+                  ></rect>
+
+                  <path
+                    d="M8 10V7a4 4 0 0 1 8 0v3"
+                  ></path>
+                </svg>
+              </span>
+
+              <input
+                id="senha"
+                name="senha"
+                type="password"
+                autocomplete="current-password"
+                placeholder="••••••••••••"
+                required
+              >
+
+              <button
+                id="toggleSenha"
+                class="password-toggle"
+                type="button"
+                aria-label="Mostrar senha"
+              >
+
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"
+                  ></path>
+
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="2.5"
+                  ></circle>
+                </svg>
+
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <!-- LEMBRAR -->
+
+          <label class="remember-option">
+
+            <input
+              id="lembrarEmail"
+              type="checkbox"
+            >
+
+            <span class="custom-checkbox"></span>
+
+            <span>
+              Lembrar de mim
+            </span>
+
+          </label>
+
+
+          <!-- ERRO -->
+
+          <p
+            id="loginErro"
+            class="login-error"
+            role="alert"
+          ></p>
+
+
+          <!-- BOTÃO -->
+
+          <button
+            id="loginButton"
+            type="submit"
+            class="login-button"
+          >
+
+            <span>
+              Entrar
+            </span>
+
+            <span class="button-arrow">
+              →
+            </span>
+
+          </button>
+
+        </form>
+
       </div>
 
 
-      <div>
+      <footer class="panel-footer">
+        LENVIE PARFUMS
+        <span></span>
+        SISTEMA INTERNO
+      </footer>
 
-        <label for="senha">
-          Senha
-        </label>
-
-        <input
-          id="senha"
-          name="senha"
-          type="password"
-          autocomplete="current-password"
-          required
-        >
-
-      </div>
-
-
-      <p
-        id="loginErro"
-        class="login-error"
-      ></p>
-
-
-      <button
-        id="loginButton"
-        type="submit"
-        class="login-button"
-      >
-        Entrar
-      </button>
-
-    </form>
+    </section>
 
   </main>
 
