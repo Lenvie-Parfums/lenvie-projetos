@@ -3084,7 +3084,7 @@ app.post(
           ),
 
           $7,
-          $8,
+          $8::varchar,
           $9,
           $10,
           $11,
@@ -3111,7 +3111,7 @@ app.post(
 
           CASE
 
-            WHEN $8='Concluído'
+            WHEN $8::varchar='Concluído'
               THEN CURRENT_DATE
 
             ELSE NULL
