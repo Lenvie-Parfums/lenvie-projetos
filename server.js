@@ -3030,19 +3030,28 @@ app.post(
       }
 
 
-      const seq =
-        await c.query(
-          `
-          SELECT
+   const seq =
+  await c.query(
+    `
+    SELECT
 
-            COALESCE(
-              MAX(id),
-              0
-            ) + 1 n
+      COALESCE(
+        MAX(
+          CASE
+            WHEN codigo ~ '^PRJ-[0-9]+$'
+              THEN SUBSTRING(
+                codigo
+                FROM '[0-9]+$'
+              )::int
+            ELSE 0
+          END
+        ),
+        0
+      ) + 1 n
 
-          FROM projetos
-          `
-        );
+    FROM projetos
+    `
+  );
 
 
       const sql = `
