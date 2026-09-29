@@ -128,6 +128,11 @@ document.addEventListener(
         'dataMovimentacao'
       );
 
+    const btnRegistrarMovimentacao =
+      document.getElementById(
+        'btnRegistrarMovimentacao'
+      );
+
     const blocoNotificacao =
       document.getElementById(
         'blocoNotificacao'
@@ -823,6 +828,117 @@ document.addEventListener(
 
       blocoMovimentacao.style.display =
         'none';
+
+      if (btnRegistrarMovimentacao) {
+        btnRegistrarMovimentacao.style.display =
+          'none';
+      }
+    }
+
+
+    if (btnRegistrarMovimentacao) {
+
+      btnRegistrarMovimentacao.addEventListener(
+        'click',
+        async () => {
+
+          if (
+            !modoEdicao ||
+            somenteLeitura
+          ) {
+            return;
+          }
+
+          const campoObservacao =
+            form.elements.namedItem(
+              'movimentacao_observacao'
+            );
+
+          const observacao =
+            String(
+              campoObservacao?.value || ''
+            ).trim();
+
+          if (!observacao) {
+            alert(
+              'Informe a observação da movimentação.'
+            );
+            campoObservacao?.focus();
+            return;
+          }
+
+          const textoOriginal =
+            btnRegistrarMovimentacao.textContent;
+
+          try {
+
+            btnRegistrarMovimentacao.disabled =
+              true;
+
+            btnRegistrarMovimentacao.textContent =
+              'Registrando...';
+
+            const resposta =
+              await fetch(
+                `/api/projetos/${projetoId}/movimentacoes`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type':
+                      'application/json'
+                  },
+                  body: JSON.stringify({
+                    data_movimentacao:
+                      dataMovimentacao?.value ||
+                      hojeInput(),
+                    observacao
+                  })
+                }
+              );
+
+            let resultado = {};
+
+            try {
+              resultado =
+                await resposta.json();
+            } catch {
+              resultado = {};
+            }
+
+            if (!resposta.ok) {
+              throw new Error(
+                resultado.detalhe ||
+                resultado.erro ||
+                `HTTP ${resposta.status}`
+              );
+            }
+
+            campoObservacao.value = '';
+
+            alert(
+              'Movimentação registrada com sucesso.'
+            );
+
+            window.location.reload();
+
+          } catch (erro) {
+
+            console.error(erro);
+
+            alert(
+              `Não foi possível registrar a movimentação.\n\n${erro.message}`
+            );
+
+          } finally {
+
+            btnRegistrarMovimentacao.disabled =
+              false;
+
+            btnRegistrarMovimentacao.textContent =
+              textoOriginal;
+          }
+        }
+      );
     }
 
 

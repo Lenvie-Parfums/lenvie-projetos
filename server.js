@@ -3282,6 +3282,181 @@ app.post(
 
 
 // ============================================================
+// REGISTRAR MOVIMENTAÇÃO DO PROJETO
+// ============================================================
+
+app.post(
+  '/api/projetos/:id/movimentacoes',
+
+  exigirPermissao(
+    'editar'
+  ),
+
+  async (req, res, next) => {
+
+    const c =
+      await pool.connect();
+
+    try {
+
+      await c.query(
+        'BEGIN'
+      );
+
+      const observacao =
+        String(
+          req.body?.observacao || ''
+        ).trim();
+
+      const dataMovimentacao =
+        req.body?.data_movimentacao ||
+        null;
+
+      if (!observacao) {
+
+        await c.query(
+          'ROLLBACK'
+        );
+
+        return res
+          .status(400)
+          .json({
+            erro:
+              'Informe a observação da movimentação.'
+          });
+      }
+
+      const projeto =
+        await c.query(
+          `
+          SELECT *
+          FROM projetos
+          WHERE id=$1
+          `,
+          [
+            req.params.id
+          ]
+        );
+
+      if (!projeto.rowCount) {
+
+        await c.query(
+          'ROLLBACK'
+        );
+
+        return res
+          .status(404)
+          .json({
+            erro:
+              'Projeto não encontrado'
+          });
+      }
+
+      const p =
+        projeto.rows[0];
+
+      const movimento =
+        await c.query(
+          `
+          INSERT INTO historico_etapas (
+
+            projeto_id,
+            etapa,
+            area_pendente,
+            situacao,
+            pendencia_proximo_passo,
+            observacoes,
+            usuario_id,
+            usuario_nome,
+            data_movimentacao
+
+          )
+
+          VALUES (
+
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7,
+            $8,
+
+            COALESCE(
+              $9::date,
+              CURRENT_DATE
+            )
+          )
+
+          RETURNING *
+          `,
+          [
+            p.id,
+            p.etapa_atual,
+            p.area_pendente,
+            p.status,
+            p.proxima_acao,
+            observacao,
+            req.usuario.id,
+            req.usuario.nome,
+            dataMovimentacao
+          ]
+        );
+
+      await c.query(
+        `
+        UPDATE projetos
+        SET atualizado_em=NOW()
+        WHERE id=$1
+        `,
+        [
+          p.id
+        ]
+      );
+
+      await registrarAuditoria(
+        c,
+        req,
+        'REGISTRAR_MOVIMENTACAO',
+        'projeto',
+        Number(p.id),
+        {
+          codigo:
+            p.codigo,
+          data_movimentacao:
+            dataMovimentacao,
+          observacao
+        }
+      );
+
+      await c.query(
+        'COMMIT'
+      );
+
+      res
+        .status(201)
+        .json(
+          movimento.rows[0]
+        );
+
+    } catch (erro) {
+
+      await c.query(
+        'ROLLBACK'
+      );
+
+      next(erro);
+
+    } finally {
+
+      c.release();
+    }
+  }
+);
+
+
+// ============================================================
 // ATUALIZAR PROJETO
 // ============================================================
 
