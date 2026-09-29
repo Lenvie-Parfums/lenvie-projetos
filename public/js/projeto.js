@@ -735,17 +735,26 @@ document.addEventListener(
                       }
 
                       ${
-                        item.observacoes
+  item.observacoes
 
-                          ? `
-                            <br>
-                            <small>
-                              ${item.observacoes}
-                            </small>
-                          `
+    ? `
+      <div
+        style="
+          margin-top:10px;
+          padding:12px 14px;
+          background:#f7f8f7;
+          border-left:3px solid #315c48;
+          border-radius:6px;
+          white-space:pre-wrap;
+          line-height:1.6;
+        "
+      >
+        ${item.observacoes}
+      </div>
+    `
 
-                          : ''
-                      }
+    : ''
+}
 
                       ${
                         item.usuario_nome
