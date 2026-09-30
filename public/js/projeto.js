@@ -26,6 +26,9 @@ document.addEventListener(
         usuario.permissoes?.editar
       );
 
+    const ehAdministrador =
+      usuario.perfil === 'administrador';
+
     const somenteLeitura =
       modoEdicao &&
       !podeEditar;
@@ -663,127 +666,117 @@ document.addEventListener(
           dados.historico.length
         ) {
 
+          const escaparHtml = valor =>
+            String(valor ?? '')
+              .replaceAll('&', '&amp;')
+              .replaceAll('<', '&lt;')
+              .replaceAll('>', '&gt;')
+              .replaceAll('"', '&quot;')
+              .replaceAll("'", '&#039;');
+
+          const formatarDataHistorico = valor => {
+            if (!valor) return '—';
+            const texto = String(valor).slice(0, 10);
+            if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
+              return texto.split('-').reverse().join('/');
+            }
+            const d = new Date(valor);
+            return Number.isNaN(d.getTime())
+              ? escaparHtml(valor)
+              : d.toLocaleDateString('pt-BR');
+          };
+
           historico.innerHTML =
-            dados.historico
+            dados.historico.map(item => {
+              const data = formatarDataHistorico(
+                item.data_movimentacao || item.data_registro
+              );
+              const dias = Number(item.dias_na_situacao || 0);
 
-              .map(
-                item => {
-
-                  const data =
-                    item.data_movimentacao
-
-                      ? String(
-                          item.data_movimentacao
-                        )
-                          .slice(0, 10)
-                          .split('-')
-                          .reverse()
-                          .join('/')
-
-                      : item.data_registro
-
-                        ? new Date(
-                            item.data_registro
-                          ).toLocaleString(
-                            'pt-BR'
-                          )
-
-                        : '—';
-
-
-                  const dias =
-                    Number(
-                      item.dias_na_situacao ||
-                      0
-                    );
-
-
-                  return `
-                    <div class="history">
-
-                      <b>
-                        ${data}
-                      </b>
-
-                      <span class="muted">
-                        • ${dias.toFixed(1)}
-                        dias
-                      </span>
-
-                      <br>
-
-                      <span class="pill">
-                        ${item.situacao || ''}
-                      </span>
-
-                      ${item.etapa || ''}
-
-                      <br>
-
-                      <span class="muted">
-                        Aguardando:
-                        ${
-                          item.area_pendente ||
-                          '—'
-                        }
-                      </span>
-
-                      ${
-                        item.pendencia_proximo_passo
-
-                          ? `
-                            <br>
-                            ${item.pendencia_proximo_passo}
-                          `
-
-                          : ''
-                      }
-
-                      ${
-  item.observacoes
-
-    ? `
-      <div
-        style="
-          margin-top:10px;
-          padding:12px 14px;
-          background:#f7f8f7;
-          border-left:3px solid #315c48;
-          border-radius:6px;
-          white-space:pre-wrap;
-          line-height:1.6;
-        "
-      >
-        ${item.observacoes}
-      </div>
-    `
-
-    : ''
-}
-
-                      ${
-                        item.usuario_nome
-
-                          ? `
-                            <br>
-                            <small>
-                              Alterado por:
-                              ${item.usuario_nome}
-                            </small>
-                          `
-
-                          : ''
-                      }
-
+              return `
+                <article class="history-card" data-history-id="${item.id}">
+                  <div class="history-card__header">
+                    <div>
+                      <div class="history-card__date">${data}</div>
+                      <div class="history-card__duration">${dias.toFixed(1).replace('.', ',')} dias nesta situação</div>
                     </div>
-                  `;
-                }
-              )
+                    ${ehAdministrador ? `
+                      <button
+                        type="button"
+                        class="history-delete"
+                        data-history-delete="${item.id}"
+                        title="Excluir este registro do histórico"
+                        aria-label="Excluir registro de ${data}"
+                      >Excluir</button>
+                    ` : ''}
+                  </div>
 
-              .join('');
+                  <div class="history-card__meta">
+                    <div class="history-field">
+                      <span class="history-label">Situação</span>
+                      <span class="pill">${escaparHtml(item.situacao || '—')}</span>
+                    </div>
+                    <div class="history-field">
+                      <span class="history-label">Etapa</span>
+                      <strong>${escaparHtml(item.etapa || '—')}</strong>
+                    </div>
+                    <div class="history-field">
+                      <span class="history-label">Aguardando</span>
+                      <strong>${escaparHtml(item.area_pendente || '—')}</strong>
+                    </div>
+                  </div>
+
+                  ${item.pendencia_proximo_passo ? `
+                    <div class="history-section">
+                      <span class="history-label">Atualização / próximo passo</span>
+                      <div class="history-text">${escaparHtml(item.pendencia_proximo_passo)}</div>
+                    </div>
+                  ` : ''}
+
+                  ${item.observacoes ? `
+                    <div class="history-section history-note">
+                      <span class="history-label">Observações</span>
+                      <div class="history-text">${escaparHtml(item.observacoes)}</div>
+                    </div>
+                  ` : ''}
+
+                  <footer class="history-card__footer">
+                    <span>Alterado por: <strong>${escaparHtml(item.usuario_nome || '—')}</strong></span>
+                    ${item.data_registro ? `<span>Registrado em ${new Date(item.data_registro).toLocaleString('pt-BR')}</span>` : ''}
+                  </footer>
+                </article>
+              `;
+            }).join('');
+
+          if (ehAdministrador) {
+            historico.querySelectorAll('[data-history-delete]').forEach(botao => {
+              botao.addEventListener('click', async () => {
+                const historicoId = botao.dataset.historyDelete;
+                const confirmar = window.confirm(
+                  'Excluir este registro do histórico?\n\nEsta ação é permanente e está disponível somente para administradores.'
+                );
+                if (!confirmar) return;
+
+                botao.disabled = true;
+                try {
+                  const resposta = await fetch(
+                    `/api/projetos/${projetoId}/historico/${historicoId}`,
+                    { method: 'DELETE' }
+                  );
+                  const retorno = await resposta.json().catch(() => ({}));
+                  if (!resposta.ok) {
+                    throw new Error(retorno.erro || 'Não foi possível excluir o registro.');
+                  }
+                  await carregar();
+                } catch (erro) {
+                  botao.disabled = false;
+                  alert(erro.message);
+                }
+              });
+            });
+          }
 
         } else {
-
           historico.innerHTML =
             '<span class="muted">Sem histórico.</span>';
         }

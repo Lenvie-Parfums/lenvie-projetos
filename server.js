@@ -3282,6 +3282,71 @@ app.post(
 
 
 // ============================================================
+// EXCLUIR REGISTRO DO HISTÓRICO — SOMENTE ADMINISTRADOR
+// ============================================================
+
+app.delete(
+  '/api/projetos/:id/historico/:historicoId',
+  async (req, res, next) => {
+    if (req.usuario?.perfil !== 'administrador') {
+      return res.status(403).json({
+        erro: 'Somente administradores podem excluir registros do histórico.'
+      });
+    }
+
+    const c = await pool.connect();
+
+    try {
+      await c.query('BEGIN');
+
+      const registro = await c.query(
+        `
+        SELECT id, projeto_id, etapa, situacao, data_movimentacao, data_registro
+        FROM historico_etapas
+        WHERE id=$1 AND projeto_id=$2
+        FOR UPDATE
+        `,
+        [req.params.historicoId, req.params.id]
+      );
+
+      if (!registro.rowCount) {
+        await c.query('ROLLBACK');
+        return res.status(404).json({
+          erro: 'Registro do histórico não encontrado.'
+        });
+      }
+
+      await c.query(
+        'DELETE FROM historico_etapas WHERE id=$1 AND projeto_id=$2',
+        [req.params.historicoId, req.params.id]
+      );
+
+      await registrarAuditoria(
+        c,
+        req,
+        'excluir_historico_etapa',
+        'historico_etapas',
+        req.params.historicoId,
+        {
+          projeto_id: Number(req.params.id),
+          registro: registro.rows[0]
+        }
+      );
+
+      await c.query('COMMIT');
+      return res.json({ ok: true });
+
+    } catch (erro) {
+      await c.query('ROLLBACK');
+      next(erro);
+    } finally {
+      c.release();
+    }
+  }
+);
+
+
+// ============================================================
 // REGISTRAR MOVIMENTAÇÃO DO PROJETO
 // ============================================================
 
